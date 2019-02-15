@@ -1,0 +1,373 @@
+const COLLECTION_TYPE_PREFIX = "Collection(";
+
+export enum EdmTypes {
+    Int32 = "Edm.Int32",
+    Int16 = "Edm.Int16",
+    Boolean = "Edm.Boolean",
+    String = "Edm.String",
+    Single = "Edm.Single",
+    Guid = "Edm.Guid",
+    DateTimeOffset = "Edm.DateTimeOffset",
+    Date="Edm.Date",
+    Double = "Edm.Double",
+    TimeOfDay = "Edm.TimeOfDay",
+    Decimal = "Edm.Decimal",
+    Unknown="Unknown"
+}
+
+export class EdmEntityType
+{
+    namespace?: Namespace;
+
+    constructor(
+        public name: string,
+        public properties: Record<string, EdmTypeReference>,
+        public navProperties: Record<string, EdmEntityTypeReference> = {},
+        public keys?: string[],
+        public baseType?: EdmEntityType,
+        public openType?: boolean
+    ) { }
+
+    getFullName = () => getFullName(this);
+}
+
+export class EdmEnumType
+{
+    namespace?: Namespace;
+
+    constructor(
+        public name: string,
+        public members: Record<string, string|number>
+    ) { }
+
+    getFullName = () => getFullName(this);
+}
+
+export class EdmEntityTypeReference {
+    constructor(
+        public type: EdmEntityType,
+        public nullable = true,
+        public collection = false
+    ) { }
+
+    static fromTypeReference(typeReference: EdmTypeReference) {
+        if (typeReference.type instanceof EdmEntityType) {
+            return typeReference as any as EdmEntityTypeReference;
+        }
+        throw new Error("Instance must be reference to EdmEntityType");
+    }
+}
+
+export class EdmTypeReference {
+    constructor(
+        public type: EdmTypes | EdmEntityType | EdmEnumType,
+        public nullable = true,
+        public collection = false
+    ) { }
+};
+
+export class OperationMetadata
+{
+    namespace?: Namespace;
+
+    constructor(
+        public name: string,
+        public isAction: boolean,
+        public parameters?: { name: string, type: EdmTypeReference}[],
+        public returnType?: EdmTypeReference,
+        public bindingTo?: EdmEntityTypeReference
+    ) { }
+
+    getFullName = () => getFullName(this);
+}
+
+function getFullName(obj: { namespace?: Namespace, name: string }): string {
+    if (obj.namespace)
+        return [obj.namespace.name, obj.name].join(".");
+    return obj.name;
+}
+
+export class Namespace {
+    operations: OperationMetadata[] = [];
+    types: Readonly<Record<string, EdmEntityType | EdmEnumType >> = { };
+
+    constructor(readonly name: string) {}
+
+    addTypes(...types: (EdmEntityType | EdmEnumType)[]) {
+        for (let type of types) {
+            type.namespace = this;
+            (this.types as any)[type.name] = type;
+        }
+    }
+
+    addOperations(...operations: OperationMetadata[]) {
+        for (let operation of operations) {
+            operation.namespace = this;
+            this.operations.push(operation);
+        }
+    }
+};
+
+type Namespaces = Record<string, Namespace>;
+export type QueryFuncMetadata = { return: EdmTypes, arguments: EdmTypes[] };
+
+export var queryFunc: Record<string, QueryFuncMetadata[]> = {
+    "concat":     [{ return: EdmTypes.String, arguments: [EdmTypes.String, EdmTypes.String]}],
+    "contains":   [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String]}],
+    "endswith":   [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String]}],
+    "indexof":    [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String]}],
+    "length":     [{ return: EdmTypes.Int32, arguments: [EdmTypes.String] }],
+    "startswith": [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String] }],
+    "substring":  [{ return: EdmTypes.String, arguments: [EdmTypes.String, EdmTypes.Int32] },
+                   { return: EdmTypes.String, arguments: [EdmTypes.String, EdmTypes.Int32, EdmTypes.Int32]}],
+
+    //String functions
+    "tolower": [{ return: EdmTypes.String, arguments: [EdmTypes.String] }],
+    "toupper": [{ return: EdmTypes.String, arguments: [EdmTypes.String] }],
+    "trim":    [{ return: EdmTypes.String, arguments: [EdmTypes.String] }],
+
+    //Date functions
+    "date": [{ return: EdmTypes.Date, arguments: [EdmTypes.DateTimeOffset] }],
+    "day":  [{ return: EdmTypes.Int32, arguments: [EdmTypes.Date]},
+             { return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset]}],
+    "fractionalseconds": [{ return: EdmTypes.Decimal, arguments: [EdmTypes.DateTimeOffset] },
+                          { return: EdmTypes.Decimal, arguments: [EdmTypes.TimeOfDay]}],
+    "hour": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
+             { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay]}],
+    "maxdatetime": [{ return: EdmTypes.DateTimeOffset, arguments: [] }],
+    "mindatetime": [{ return: EdmTypes.DateTimeOffset, arguments: [] }],
+    "minute": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
+               { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay]}],
+    "month": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
+              { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay]}],
+    "now": [{ return: EdmTypes.DateTimeOffset, arguments: [] }],
+    "second": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
+               { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay]}],
+    "time": [{ return: EdmTypes.TimeOfDay, arguments: [EdmTypes.DateTimeOffset] }],
+    "totaloffsetminutes": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] }],
+    "year": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
+             { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay]}],
+
+    //Arithmetic Functions
+    "celling": [{ return: EdmTypes.Double, arguments: [EdmTypes.Double] },
+        { return: EdmTypes.Decimal, arguments: [EdmTypes.Decimal] }],
+    "floor": [{ return: EdmTypes.Double, arguments: [EdmTypes.Double] },
+              { return: EdmTypes.Decimal, arguments: [EdmTypes.Decimal] }],
+    "round": [{ return: EdmTypes.Double, arguments: [EdmTypes.Double] },
+              { return: EdmTypes.Decimal, arguments: [EdmTypes.Decimal] }]
+};
+
+var __metadataCache: Record<string, Readonly<ApiMetadata>> = {};
+
+export function loadMetadata(apiRoot: string, cache = true): Promise<ApiMetadata> {
+    if (apiRoot.endsWith("/"))
+        apiRoot = apiRoot.substr(0, apiRoot.length - 1);
+    const normalizedApiRoot = apiRoot.toLowerCase(),
+          res: ApiMetadata = __metadataCache[normalizedApiRoot];
+    if (res == null || !cache) {
+        return ApiMetadata.loadAsync(apiRoot)
+            .then(md => {
+                if (cache)
+                    __metadataCache[normalizedApiRoot] = md;
+                return md;
+            });
+    }
+    return Promise.resolve(res);
+}
+
+export class ApiMetadata {
+    constructor(
+        readonly apiRoot: string,
+        readonly namespaces: Namespaces = {},
+        readonly entitySets: Record<string, EdmEntityType> = {},
+        readonly singletons: Record<string, EdmEntityType> = {}
+    ) { }
+
+    static loadFromXml(apiRoot:string, metadataXml: string) {
+        const parser = new DOMParser();
+        const metadataDoc = parser.parseFromString(metadataXml, "text/xml");
+
+        const namespaces = ApiMetadata.getEntityTypes(metadataDoc);
+        const entitySets: Record<string, EdmEntityType> = {};
+        const singletons: Record<string, EdmEntityType> = {};
+        metadataDoc.querySelectorAll("Schema>EntityContainer>EntitySet").forEach((e: Element) => {
+            let esName = getRequiredAttributeValue(e,"Name");
+            let typeName = getRequiredAttributeValue(e, "EntityType");
+            entitySets[esName] = ApiMetadata.getEntitySetMetadata(typeName, namespaces);
+        });
+        metadataDoc.querySelectorAll("Schema>EntityContainer>Singleton").forEach((e: Element) => {
+            let sName = getRequiredAttributeValue(e, "Name");
+            let typeName = getRequiredAttributeValue(e, "Type");
+            singletons[sName] = ApiMetadata.getEntityMetadata(typeName, namespaces);
+        });
+        metadataDoc.querySelectorAll("Schema>Function,Schema>Action").forEach(e => {
+            const metadata = ApiMetadata.getOperationMetadata(e, namespaces);
+            const namespaceName = getRequiredAttributeValue(e.parentElement as Element, "Namespace");
+            if (!namespaces[namespaceName])
+                namespaces[namespaceName] = new Namespace(namespaceName);
+            namespaces[namespaceName].addOperations(metadata);
+        });
+
+        return new ApiMetadata(apiRoot, namespaces, entitySets, singletons);
+    }
+
+    static async loadAsync(apiRoot: string) {
+
+        const uri = apiRoot + "/$metadata";
+        const response = await fetch(uri);
+        return this.loadFromXml(apiRoot, await response.text());
+    }
+
+    static getEntityTypes(metadataDoc: Document) {
+        let namespaces = {} as Namespaces;
+
+        let entityTypes: Array<{ element: Element, typeMetadata: EdmEntityType }> = [];
+        metadataDoc.querySelectorAll("Schema>ComplexType,Schema>EntityType,Schema>EnumType").forEach(e => {
+            let ns = getRequiredAttributeValue(e.parentElement as Element, "Namespace");
+            let name = getRequiredAttributeValue(e,"Name");
+            if (!(ns in namespaces))
+                namespaces[ns] = new Namespace(ns);
+            if (e.tagName.toLowerCase() === "enumtype") {
+                const enumType = new EdmEnumType(name, ApiMetadata.getEnumMembers(e));
+                namespaces[ns].addTypes(enumType);
+            }
+            else {
+                let typeMetadata = namespaces[ns].types[name] as EdmEntityType || new EdmEntityType(name, {})
+                namespaces[ns].addTypes(typeMetadata);
+                const openTypeAttr = e.attributes.getNamedItem("OpenType");
+                if (openTypeAttr && openTypeAttr.value == "true")
+                    typeMetadata.openType = true;
+                const baseTypeAttr = e.attributes.getNamedItem("BaseType");
+                const baseType = baseTypeAttr && baseTypeAttr.value;
+                if (baseType) {
+                    const baseTypeNS = baseType.substring(0, baseType.lastIndexOf("."));
+                    const baseTypeName = baseType.substr(baseTypeNS.length + 1);
+                    let btns = namespaces[baseTypeNS];
+                    if (!btns)
+                        namespaces[baseTypeNS] = btns = new Namespace(baseTypeNS);
+                    let bt = btns.types[baseTypeName] as EdmEntityType;
+                    if (!bt) {
+                        bt = new EdmEntityType(baseTypeName, {});
+                        btns.addTypes(bt);
+                    }
+                    typeMetadata.baseType = bt;
+                }
+                entityTypes.push({ element: e, typeMetadata });
+            }
+        });
+
+        for (let e of entityTypes) {
+            Object.assign(e.typeMetadata, ApiMetadata.getEntityTypeProperties(e.element, namespaces));
+            e.typeMetadata.keys = this.getEntityKeys(e.element);
+        }
+
+        return namespaces;
+    }
+
+    static getEntityKeys(typeElement: Element) {
+        var res = new Array<string>();
+        typeElement.querySelectorAll("Key>PropertyRef").forEach(e => {
+            res.push(getRequiredAttributeValue(e, "Name"));
+        });
+        return res;
+    }
+
+    static getEnumMembers(element: Element): Record<string, string | number> {
+        const res: Record<string, string | number> = {};
+        element.querySelectorAll("Member").forEach(e => {
+            const name = getRequiredAttributeValue(e, "Name");
+            const rawValue = getRequiredAttributeValue(e, "Value");
+            res[name] = (rawValue.match(/\d/)) ? parseInt(rawValue) : rawValue;
+        });
+        return res;
+    }
+
+    static getEntityTypeProperties(typeElement: Element, namespaces: Namespaces) {
+        let properties: Record<string, EdmTypeReference> = {};
+        let navProperties: Record<string, EdmEntityTypeReference> = {};
+        typeElement.querySelectorAll("Property,NavigationProperty").forEach(e => {
+            const name = getRequiredAttributeValue(e,"Name");
+            let metadata = ApiMetadata.getType(e, namespaces);
+            if(e.tagName.toLowerCase() == "property")
+                properties[name] = metadata;
+            else
+                navProperties[name] = EdmEntityTypeReference.fromTypeReference(metadata);
+        });
+        return { properties, navProperties };
+    }
+
+    static getEntitySetMetadata(typeName: string, namespaces: Namespaces) {
+        const res = ApiMetadata.getEdmTypeMetadata(typeName, namespaces);
+        if (res instanceof EdmEntityType)
+            return res;
+        throw new Error("EntitySet item type mast be entity");
+    }
+
+    static getEntityMetadata(typeName: string, namespaces: Namespaces) {
+        const res = ApiMetadata.getEdmTypeMetadata(typeName, namespaces);
+        if (res instanceof EdmEntityType)
+            return res;
+        throw new Error("Entity type mast be entity");
+    }
+
+    static getEdmTypeMetadata(typeName: string, namespaces: Namespaces): EdmEntityType | EdmEnumType {
+        if (typeName.startsWith(COLLECTION_TYPE_PREFIX))
+            typeName = typeName.substring(COLLECTION_TYPE_PREFIX.length, typeName.length - 1)
+
+        const namespace = typeName.substring(0, typeName.lastIndexOf("."));
+        const typeNameNoNs = typeName.substr(namespace.length + 1);
+        if (namespace == "Edm") {
+            let t = (EdmTypes as any)[typeNameNoNs];
+            if (!t) throw new Error("Not registred Edm type: " + typeNameNoNs)
+            return t;
+        }
+        const nsMeta = namespaces[namespace];
+        if (!nsMeta)
+            throw new Error(`Namespace '${namespace}' not found`);
+        let typeElement = nsMeta.types[typeNameNoNs];
+        return typeElement;
+    }
+
+    static getOperationMetadata(operationElement: Element, namespaces: Namespaces): OperationMetadata {
+        const isAction = operationElement.tagName.toLowerCase() === "action";
+        const isBoundAttr = operationElement.attributes.getNamedItem("IsBound");
+        const isBound = isBoundAttr !== null && isBoundAttr.value.toLowerCase() == "true";
+        const name = getRequiredAttributeValue(operationElement, "Name");
+        const returnTypeElement = operationElement.querySelector("ReturnType");
+        const returnType = returnTypeElement
+            ? ApiMetadata.getType(returnTypeElement, namespaces)
+            : undefined;
+        const parameters = new Array<{ name: string, type: EdmTypeReference }>();
+        let bindingTo: EdmEntityTypeReference | undefined;
+        operationElement.querySelectorAll("Parameter").forEach(e => {
+            const type = ApiMetadata.getType(e, namespaces);
+            const name = getRequiredAttributeValue(e, "Name");
+            if (isBound && !bindingTo)
+                bindingTo = EdmEntityTypeReference.fromTypeReference(type);
+            else
+                parameters.push({ name, type });
+        });
+        return new OperationMetadata(name, isAction, parameters, returnType, bindingTo);
+    }
+
+    static getType(element: Element, namespaces: Namespaces) {
+        let typeName = getRequiredAttributeValue(element, "Type");
+        let collection = typeName.startsWith(COLLECTION_TYPE_PREFIX);
+        if (collection)
+            typeName = typeName.substring(COLLECTION_TYPE_PREFIX.length, typeName.length - 1);
+        const typeMetadata = ApiMetadata.getEdmTypeMetadata(typeName, namespaces);
+        const nullableAttr = element.attributes.getNamedItem("Nullable");
+        const res = new EdmTypeReference(typeMetadata, true, collection);
+        if (nullableAttr)
+            res.nullable = nullableAttr.value.toLowerCase() == 'true';
+        return res;
+    }
+}
+
+function getRequiredAttributeValue(element: Element, attrName: string): string {
+    var attr = element.attributes.getNamedItem(attrName);
+    if (attr)
+        return attr.value;
+
+    throw new Error(`Metadata: Attribute '${attrName}' in element '${element.tagName}' not found `);
+}

@@ -1,0 +1,13 @@
+{
+	"compilerOptions": {
+		"declaration": true,
+    "lib": [ "es6", "dom" ],
+    "strict": true,
+    "sourceMap": true,
+    //"module": "umd",
+    "moduleResolution": "node"//,
+    //"baseUrl": "./src/"
+	},
+  "compileOnSave": true,
+  "exclude": ["node_modules", "dist"]
+}
