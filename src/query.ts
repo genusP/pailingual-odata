@@ -66,6 +66,7 @@ export class Query {
             q => {
                 q._segments.push(new ActionSegment(metadata));
                 q._method = "post";
+                (q as any)._entityMetadata = metadata.returnType && metadata.returnType.type as EdmEntityType;
                 if (args && args.length>0) {
                     let payload: Record<string, any> = {};
                     let edmProps: Record<string, EdmTypeReference> = {}
@@ -85,7 +86,10 @@ export class Query {
 
     private _func(metadata: OperationMetadata, args: any[]): Query {
         return this._clone(
-            q => q._segments.push(new FuncSegment(metadata, args))
+            q => {
+                (q as any)._entityMetadata = metadata.returnType && metadata.returnType.type as EdmEntityType;
+                q._segments.push(new FuncSegment(metadata, args))
+            }
         );
     }
 

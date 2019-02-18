@@ -4,6 +4,7 @@ import { parse } from "acorn";
 import { ApiContextFactory } from "../src/index";
 import { Context, metadata, TestEnum } from "./models";
 import { setParser } from '../src/filterExpressionBuilder';
+import { EISDIR } from "constants";
 
 describe("Filter", () => {
 
@@ -141,6 +142,15 @@ describe("Filter", () => {
                 e.id == 1)
             .$url();
         assert.equal(actual, "/api/Parents?$filter=id eq 1");
+    });
+
+    it("bound Function", () => {
+        const actual = context.Parents.$byKey(1)
+            .entityBoundFuncEntityCol()
+            .$filter(e => e.childField == "test")
+            .$url();
+
+        assert.equal(actual, "/api/Parents(1)/Default.entityBoundFuncEntityCol()?$filter=childField eq 'test'");
     });
 
     it("Multi-line expression with lambda", () => {

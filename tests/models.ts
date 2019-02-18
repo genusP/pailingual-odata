@@ -52,6 +52,7 @@ export interface Parent extends IEntityBase {
     $$Functions: {
         entityBoundFuncPrimitive(): string,
         entityBoundFuncComplexCol(): ComplexType[]
+        entityBoundFuncEntityCol(): Child[]
     };
     $$EntitySetFunctions: {
         colBoundFuncPrimitive(): number
@@ -168,6 +169,7 @@ namespace.addOperations(
         //entity operations
         new OperationMetadata("entityBoundFuncPrimitive", /*isAction*/false, /*parameters*/undefined, /*returnType*/new EdmTypeReference(EdmTypes.String), /*bindingTo*/ new EdmEntityTypeReference(parentET)),
         new OperationMetadata("entityBoundFuncComplexCol", /*isAction*/false, /*parameters*/undefined, /*returnType*/new EdmTypeReference(complexT, true, /*col*/true), /*bindingTo*/new EdmEntityTypeReference(parentET)),
+        new OperationMetadata("entityBoundFuncEntityCol", /*isAction*/false, /*parameters*/undefined, /*returnType*/new EdmTypeReference(childET, true, /*col*/true), /*bindingTo*/new EdmEntityTypeReference(parentET)),
         new OperationMetadata("boundAction", /*isAction*/true, /*parameters*/undefined, /*returnType*/undefined, /*bindingTo*/new EdmEntityTypeReference(parentET)),
     );
 
