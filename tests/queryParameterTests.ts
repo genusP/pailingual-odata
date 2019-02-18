@@ -3,8 +3,9 @@
 import { ApiContextFactory } from "../src/index";
 import { Context, metadata, ParentEx, TestEnum } from "./models";
 
-describe("", () => {
-    const context = ApiContextFactory<Context>(metadata);
+const context = ApiContextFactory<Context>(metadata);
+
+describe("Entity", () => {
 
     it("Select 1", () => {
         const url = context.Parents
@@ -253,4 +254,26 @@ describe("", () => {
             .$urlWithCount();
 
         assert.equal(url, "/api/unboundFuncEntityCol()?$select=id,strField&$skip=10&$top=10&$count=true");    });
+});
+
+describe("Functions", () => {
+    it("Select", () => {
+        const url = context
+            .unboundFuncEntityCol()
+            .$select("id")
+            .$url();
+
+        assert.equal(url, "/api/unboundFuncEntityCol()?$select=id");
+    })
+
+    it("Select 2", () => {
+        const url = context
+            .Parents
+            .$byKey(1)
+            .entityBoundFuncEntityCol()
+            .$select("id")
+            .$url();
+
+        assert.equal(url, "/api/Parents(1)/Default.entityBoundFuncEntityCol()?$select=id");
+    })
 });
