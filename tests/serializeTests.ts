@@ -296,7 +296,6 @@ describe("", () => {
                 exField: "test"
             }]
         };
-        debugger;
         const actual = jsonDeserialize(data, metadata, {});
 
         assert.deepStrictEqual(actual, expected);
@@ -316,7 +315,6 @@ describe("", () => {
                 { id: 2 },
             ]
         };
-        debugger;
         const actual = jsonDeserialize(data, metadata, {});
 
         assert.deepStrictEqual(actual, expected);

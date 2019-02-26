@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Mocha Tests</title>
+    <link rel="stylesheet" href="node_modules/mocha/mocha.css">
+</head>
+<body>
+    <div id="mocha"></div>
+    <script src="node_modules/requirejs/require.js"></script>
+    <script src="node_modules/mocha/mocha.js"></script>
+    <script>
+        var exports = {};
+        mocha.setup('bdd')
+    </script>
+
+    <script>
+        requirejs.config({
+            baseUrl: "",
+            paths: {
+                "chai": "node_modules/chai/chai",
+                "acorn": "node_modules/acorn/dist/acorn"
+            }
+        })
+        requirejs([
+            //load your test files here
+            "./tests/dataModificationTests.js",
+            "./tests/filterExpressionTests.js",
+            "./tests/metadataTests.js",
+            "./tests/pathTests.js",
+            "./tests/queryParameterTests.js",
+            "./tests/serializeTests.js"
+            ],
+            function () { mocha.run() }
+        );
+    </script>
+
+</body>
+</html>

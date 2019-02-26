@@ -21,7 +21,12 @@
     "src/**/*"
   ],
   "license": "MIT",
-  "keywords": ["odata", "odata-v4", "odata-client", "typescript"],
+  "keywords": [
+    "odata",
+    "odata-v4",
+    "odata-client",
+    "typescript"
+  ],
   "devDependencies": {
     "@types/chai": "^4.1.7",
     "@types/estree": "0.0.39",
@@ -35,6 +40,7 @@
     "jsdom-global": "^3.0.2",
     "mocha": "^5.2.0",
     "node-fetch": "^2.3.0",
+    "requirejs": "^2.3.6",
     "typescript": "^3.1.6",
     "webpack": "4.28.4",
     "webpack-cli": "3.2.1"

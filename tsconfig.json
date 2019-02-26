@@ -4,7 +4,7 @@
     "lib": [ "es6", "dom" ],
     "strict": true,
     "sourceMap": true,
-    //"module": "umd",
+    "module": "umd",
     "moduleResolution": "node"//,
     //"baseUrl": "./src/"
 	},

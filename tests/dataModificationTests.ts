@@ -2,8 +2,7 @@
 
 import { fetchUrlInterceptor } from "./infrastucture";
 import { metadata, Context } from "./models";
-import { ApiContextFactory } from "../src";
-import * as nf from 'node-fetch';
+import { ApiContextFactory } from "../src/index";
 
 
 var requestInfo: { url?: string, method?: string, payload?: any } = {};
@@ -152,7 +151,10 @@ describe("Response", function () {
     function getFetchMock(httpCode: number, body?: string)
     {
         return function (r: RequestInfo, init?: RequestInit) {
-            const response = new nf.Response(body, { status: httpCode });
+            let headers: any = {};
+            if (body)
+                headers["Content-Type"] = "application/json";
+            const response = new Response(body || null, { status: httpCode, headers });
             return Promise.resolve(response as any as Response);
             }
     };
@@ -194,7 +196,6 @@ describe("Response", function () {
                 e => assert.fail("Promise must be rejected"),
                 e => {
                     assert.equal(e.status, 404);
-                    assert.equal(e.error, "Not Found");
             });
     })
 
@@ -204,7 +205,6 @@ describe("Response", function () {
                 e => assert.fail("Promise must be rejected"),
                 e => {
                     assert.equal(e.status, 500);
-                    assert.equal(e.error, "Internal Server Error");
             });
     })
 })

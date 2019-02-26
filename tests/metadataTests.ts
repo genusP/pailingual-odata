@@ -1,8 +1,11 @@
 ﻿import { assert } from "chai";
 import { ODataFunctions } from '../src/index';
 import { queryFunc, ApiMetadata, EdmTypes, EdmEntityType, EdmEntityTypeReference, EdmTypeReference, EdmEnumType } from '../src/metadata';
-require('jsdom-global')();
-(global as any).DOMParser = (window as any).DOMParser;
+
+if (typeof window === 'undefined') {
+    require('jsdom-global')();
+    (global as any).DOMParser = (window as any).DOMParser;
+}
 
 describe("", () => {
     it("Exist metadata query options filter", () => {
@@ -13,7 +16,7 @@ describe("", () => {
 
             const metadata = queryFunc[fn];
             assert.ok(metadata, `Metadata for query function '${fn}' not registred`);
-            assert.ok(metadata.find(m => m.arguments.length == argsCnt), `Argument count not equals for '${fn}'`)
+            assert.ok(metadata.filter(m => m.arguments.length == argsCnt).length!=0, `Argument count not equals for '${fn}'`)
         }
     });
 
@@ -112,18 +115,18 @@ describe("", () => {
 
         const actual = ApiMetadata.loadFromXml("", xml);
         const NS = actual.namespaces["Default"];
-        const boundFuncMD = NS.operations.find(o => o.name == "boundFunc");
-        const colboundFuncMD = NS.operations.find(o => o.name == "colBoundFunc");
-        const unboundFuncMD = NS.operations.find(o => o.name == "unboundFunc");
+        const boundFuncMD = NS.operations.filter(o => o.name == "boundFunc");
+        const colboundFuncMD = NS.operations.filter(o => o.name == "colBoundFunc");
+        const unboundFuncMD = NS.operations.filter(o => o.name == "unboundFunc");
         const baseEdmEntityType = NS.types["Base"] as EdmEntityType;
 
-        assert.ok(NS.operations.find(o => o.name == "boundFunc"), "boundFunc not defined");
-        assert.ok(NS.operations.find(o => o.name == "colBoundFunc"), "colBoundFunc not defined");
-        assert.ok(NS.operations.find(o => o.name == "unboundFunc"), "unboundFunc not defined");
-        assert.deepEqual(boundFuncMD && boundFuncMD.bindingTo, new EdmEntityTypeReference(baseEdmEntityType), "boundFunc");
-        assert.deepEqual(colboundFuncMD && colboundFuncMD.bindingTo, new EdmEntityTypeReference(baseEdmEntityType, true, true), "colBoundFunc");
-        assert.equal(unboundFuncMD && unboundFuncMD.bindingTo, undefined, "unboundFunc");
-        assert.deepEqual(boundFuncMD && boundFuncMD.parameters, [{ name: "p", type: new EdmTypeReference(EdmTypes.String) }], "colBoundFunc");
+        assert.ok(boundFuncMD && boundFuncMD.length == 1, "boundFunc not defined");
+        assert.ok(colboundFuncMD && colboundFuncMD.length == 1, "colBoundFunc not defined");
+        assert.ok(unboundFuncMD && unboundFuncMD.length == 1, "unboundFunc not defined");
+        assert.deepEqual(boundFuncMD[0].bindingTo, new EdmEntityTypeReference(baseEdmEntityType), "boundFunc");
+        assert.deepEqual(colboundFuncMD[0].bindingTo, new EdmEntityTypeReference(baseEdmEntityType, true, true), "colBoundFunc");
+        assert.equal(unboundFuncMD[0].bindingTo, undefined, "unboundFunc");
+        assert.deepEqual(boundFuncMD[0].parameters, [{ name: "p", type: new EdmTypeReference(EdmTypes.String) }], "colBoundFunc");
     })
 
     it("Xml metadata Action", () => {
@@ -149,18 +152,18 @@ describe("", () => {
 
         const actual = ApiMetadata.loadFromXml("", xml);
         const NS = actual.namespaces["Default"];
-        const boundMD = NS.operations.find(o => o.name == "bound");
-        const colboundMD = NS.operations.find(o => o.name == "colBound");
-        const unboundMD = NS.operations.find(o => o.name == "unbound");
+        const boundMD = NS.operations.filter(o => o.name == "bound");
+        const colboundMD = NS.operations.filter(o => o.name == "colBound");
+        const unboundMD = NS.operations.filter(o => o.name == "unbound");
         const baseEdmEntityType = NS.types["Base"] as EdmEntityType;
 
-        assert.ok(NS.operations.find(o => o.name == "bound"), "bound: not defined");
-        assert.ok(NS.operations.find(o => o.name == "colBound"), "colBound: not defined");
-        assert.ok(NS.operations.find(o => o.name == "unbound"), "unbound: not defined");
-        assert.ok(boundMD && boundMD.bindingTo && colboundMD && colboundMD.bindingTo, "binding for bounded function not set");
-        assert.ok(unboundMD && !unboundMD.bindingTo, "binding for unbounded function not null");
-        assert.deepEqual(boundMD && boundMD.bindingTo, new EdmEntityTypeReference(baseEdmEntityType), "bound");
-        assert.deepEqual(colboundMD && colboundMD.bindingTo, new EdmEntityTypeReference(baseEdmEntityType, true, true), "colBound");
+        assert.ok(boundMD && boundMD.length == 1, "bound: not defined");
+        assert.ok(colboundMD && colboundMD.length == 1, "colBound: not defined");
+        assert.ok(unboundMD && unboundMD.length == 1, "unbound: not defined");
+        assert.ok(boundMD[0].bindingTo && colboundMD[0].bindingTo, "binding for bounded function not set");
+        assert.ok(!unboundMD[0].bindingTo, "binding for unbounded function not null");
+        assert.deepEqual(boundMD[0].bindingTo, new EdmEntityTypeReference(baseEdmEntityType), "bound");
+        assert.deepEqual(colboundMD[0].bindingTo, new EdmEntityTypeReference(baseEdmEntityType, true, true), "colBound");
     })
 });
 
