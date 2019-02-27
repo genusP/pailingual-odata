@@ -3,7 +3,7 @@ import { CollectionSource } from "./collectionSource";
 import { ApiMetadata } from "./metadata";
 import { SingleSource } from "./singleSource";
 import { generateOperations } from "./utils";
-import { Options } from ".";
+import { Options } from "./options";
 
 
 export class ApiContextImpl{

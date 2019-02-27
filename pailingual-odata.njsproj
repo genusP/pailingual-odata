@@ -31,11 +31,16 @@
     <Content Include=".gitignore" />
     <Content Include="package-lock.json" />
     <Content Include="package.json" />
+    <Content Include="run_tests.html">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="tsconfig.esm.json">
       <SubType>Code</SubType>
     </Content>
     <Content Include="tsconfig.json" />
     <TypeScriptCompile Include="src\apiContext.ts" />
+    <TypeScriptCompile Include="src\options.ts" />
+    <TypeScriptCompile Include="src\polyfills.ts" />
     <TypeScriptCompile Include="src\singleSource.ts" />
     <TypeScriptCompile Include="src\oDataFunctions.ts">
       <SubType>Code</SubType>

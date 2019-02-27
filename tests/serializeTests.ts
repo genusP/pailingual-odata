@@ -1,7 +1,7 @@
 ﻿import { assert } from "chai";
 
 import { getFormatter } from '../src/serialization';
-import { Parent, metadata, Child, ComplexType, TestEnum, OpenType } from './models';
+import { Parent, metadata, Child, ComplexType, TestEnum, OpenType, TestEntity } from './models';
 import { EdmEntityType } from '../src/metadata';
 import { Entity } from '../src';
 
@@ -10,8 +10,9 @@ describe("", () => {
     const jsonSerialize = formatter.serialize,
         jsonDeserialize = formatter.deserialize;
     it("Serialize", () => {
+        const dateTime = new Date(2019, 1, 16, 10, 29);
         var payload: Partial<Parent> = {
-            dateField: new Date(2019, 1, 16, 10, 29),
+            dateField: dateTime,
             numberField: 11,
             guid:'1265c96e-223a-461f-ad0d-9d5d8fb82ad7',
             complexType: {
@@ -23,7 +24,7 @@ describe("", () => {
 
         assert.equal(
             result,
-            '{"dateField":"2019-02-16T07:29:00.000Z","numberField":11,"guid":"1265c96e-223a-461f-ad0d-9d5d8fb82ad7","complexType":{"field":"test"}}'
+            `{"dateField":"${dateTime.toISOString()}","numberField":11,"guid":"1265c96e-223a-461f-ad0d-9d5d8fb82ad7","complexType":{"field":"test"}}`
         )
     });
 
@@ -32,14 +33,19 @@ describe("", () => {
             id: 1,
             childs: [{
                 childField: "a"
-            } as any as Child]
+            } as any as Child],
+            entityes: [{
+                id: 1,
+                parentId: 1,
+                testEntityField: "testStr"
+            } as any as TestEntity]
         };
         const entityMD = metadata.namespaces["Default"].types["Parent"] as EdmEntityType;
         const result = jsonSerialize(payload, entityMD, {});
 
         assert.equal(
             result,
-            '{"id":1,"childs":[{"childField":"a"}]}'
+            '{"id":1,"childs":[{"childField":"a"}],"entityes":[{"id":1,"parentId":1,"testEntityField":"testStr"}]}'
         )
     });
 

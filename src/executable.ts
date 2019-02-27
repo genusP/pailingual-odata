@@ -1,5 +1,5 @@
-﻿import { Query} from "./query";
-import { Options } from ".";
+﻿import { Query } from "./query";
+import { Options } from "./options";
 
 export class Executable {
     constructor(readonly query: Query) {

@@ -1,5 +1,6 @@
 ﻿import { EdmTypes, EdmEntityType, ApiMetadata, EdmEnumType } from "./metadata";
-import { Options } from ".";
+import { Options } from "./options";
+import { startsWith, endsWith } from "./utils";
 
 const guidRE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -55,7 +56,7 @@ function enumMemberByValue(type: EdmEnumType, value: number) : string | undefine
 }
 
 function jsonSerialize(payload: any, metadata: EdmEntityType, options: Options = {}) {
-    let metadataMap = new Map<any, EdmEntityType>();
+    let metadataMap = new MapObjToEntityType();
     metadataMap.set(payload, metadata);
     let otMetadata = new EdmEntityType("$$~~openType~~$$", {});
     otMetadata.openType = true;
@@ -78,7 +79,7 @@ function jsonSerialize(payload: any, metadata: EdmEntityType, options: Options =
                     if (Array.isArray(v))
                         for (let item of v)
                             metadataMap.set(item, valueType);
-                    else
+                    else if (v != null)
                         metadataMap.set(v, valueType);
                     return v;
                 }
@@ -137,7 +138,7 @@ function jsonDeserialize(response: string, apiMetadata: ApiMetadata, options: Op
     if (context) {
         context = context.split("#")[1];
         let count = rawData[ODATA_COUNT];
-        let isEntity = context.endsWith("$entity");
+        let isEntity = endsWith(context, "$entity");
         context = context.replace(/\/\$entity$/, "");
         let type = getSourceType(context, apiMetadata)
         if (!isEntity && Array.isArray(rawData.value)) {
@@ -183,7 +184,7 @@ function convertObj(obj: any, type: EdmTypes | EdmEntityType | EdmEnumType, apiM
                     const edmPropertyType = edmProps[propName];
                     if (edmPropertyType)
                         res[propName] = convertObj(obj[propName], edmPropertyType, apiMetadata, options)
-                    else if (!propName.startsWith("@")
+                    else if (!startsWith(propName,"@")
                           && entityType.openType == true)
                         res[propName] = obj[propName];
                 }
@@ -209,7 +210,7 @@ function getEdmProperties(type: EdmEntityType): Record<string, EdmTypes | EdmEnt
 }
 
 function getSourceType(source: string, apiMetadata: ApiMetadata) {
-    if (source.startsWith("Collection"))
+    if (startsWith(source,"Collection"))
         source = source.substring("Collection".length + 1, source.length - 1);
     const pos = source.indexOf("(");
     if (pos > -1)
@@ -230,4 +231,25 @@ function getSourceType(source: string, apiMetadata: ApiMetadata) {
         }
     }
     return es;
+}
+
+class MapObjToEntityType{
+    private __keys: object[] = [];
+    private __values: EdmEntityType[] = [];
+    get(key: object): EdmEntityType | undefined {
+        if (key) {
+            const index = this.__keys.indexOf(key);
+            if (index > -1)
+                return this.__values[index];
+        }
+    }
+
+    set(key: object, entityType: EdmEntityType): void {
+        if (!key)
+            throw new Error("Key must be set");
+        let index = this.__keys.indexOf(key);
+        if (index == -1)
+            index = this.__keys.push(key) - 1;
+        this.__values[index] = entityType;
+    }
 }

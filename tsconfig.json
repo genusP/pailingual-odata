@@ -1,12 +1,11 @@
 {
 	"compilerOptions": {
 		"declaration": true,
-    "lib": [ "es6", "dom" ],
+    "lib": [ "es5", "es2015.promise", "dom" ],
     "strict": true,
     "sourceMap": true,
     "module": "umd",
-    "moduleResolution": "node"//,
-    //"baseUrl": "./src/"
+    "moduleResolution": "node"
 	},
   "compileOnSave": true,
   "exclude": ["node_modules", "dist"]

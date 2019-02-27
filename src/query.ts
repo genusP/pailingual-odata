@@ -1,8 +1,8 @@
 import { EdmEntityType, OperationMetadata, EdmTypes, ApiMetadata, EdmTypeReference } from "./metadata";
-import { getFormatter, serializeValue} from "./serialization";
-import { Options } from ".";
+import { getFormatter, serializeValue } from "./serialization";
+import { Options } from "./options";
 import { buildExpression } from "./filterExpressionBuilder";
-import { expandExpressionBuild } from "./utils";
+import { expandExpressionBuild, startsWith } from "./utils";
 
 export class Query {
     private _segments: Segment[]=[];
@@ -269,9 +269,16 @@ export class Query {
 
     private _fetchData(url: string, options: Options) {
         const fetchApi = (options && options.fetch) || fetch;
-        const inputFormatter = getFormatter( options.format || "application/json");
-        const body = inputFormatter.serialize(this._payload, this._entityMetadata, options);
-        return fetchApi(url, { method: this._method, body, headers: { "Content-Type": inputFormatter.contentType } })
+        const inputFormatter = getFormatter(options.format || "application/json");
+        const body = this._payload? inputFormatter.serialize(this._payload, this._entityMetadata, options):null;
+        return fetchApi(
+            url,
+            {
+                method: this._method,
+                body,
+                headers: { "Content-Type": inputFormatter.contentType },
+                credentials: options.credentials
+            })
             .then(response => new Promise<{ response: Response, body?: string }>(
                 (resolve, reject) => {
                     if (response.body)
@@ -285,9 +292,9 @@ export class Query {
                 const response = data.response;
                 let contentType = response.headers.get("Content-Type");
                 if (response.ok) {
-                    if (bodyStr) {
+                    if (bodyStr && bodyStr.length>0) {
                         if (!contentType) {
-                            if (bodyStr.startsWith("{"))
+                            if (startsWith(bodyStr, "{"))
                                 contentType = "application/json";
                         }
                         else

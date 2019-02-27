@@ -152,9 +152,9 @@ describe("Response", function () {
     {
         return function (r: RequestInfo, init?: RequestInit) {
             let headers: any = {};
-            if (body)
+            if (body != null)
                 headers["Content-Type"] = "application/json";
-            const response = new Response(body || null, { status: httpCode, headers });
+            const response = new Response(body, { status: httpCode, headers });
             return Promise.resolve(response as any as Response);
             }
     };
@@ -173,10 +173,17 @@ describe("Response", function () {
 
     it("204 No content", function () {
         const val = { strField: "" };
-        return context.Parents.$byKey(1).$patch(val).$exec({ fetch: getFetchMock(204) })
-            .then(
-                e => assert.equal(e, undefined),
-                e => assert.fail("Promise rejected"));
+        try {
+            return context.Parents.$byKey(1).$patch(val).$exec({ fetch: getFetchMock(204) })
+                .then(
+                    e => assert.equal(e, undefined),
+                    e => assert.fail("Promise rejected"));
+        }
+        catch (e) { //some browsers throw error when construct response with status 204
+            if (e instanceof TypeError /*&& startsWith(e.message, "Failed to construct 'Response': Response with null body status cannot have body")*/)
+                return;
+            throw e;
+        }
     })
 
     it("400 Bad request", function () {

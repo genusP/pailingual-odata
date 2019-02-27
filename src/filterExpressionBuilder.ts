@@ -1,7 +1,7 @@
 import { EdmEntityType, EdmTypes, EdmTypeReference, queryFunc, QueryFuncMetadata, EdmEnumType } from "./metadata";
 import { serializeValue } from "./serialization";
 import * as estree from "estree";
-import { Options } from ".";
+import { Options } from "./options";
 
 type ParserDelegate = (fragment: string) => estree.Program;
 

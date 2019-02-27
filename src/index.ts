@@ -1,6 +1,7 @@
 ﻿import { ODataFunctions } from "./ODataFunctions";
 import { ApiMetadata, loadMetadata } from "./metadata";
 import { ApiContextImpl } from "./apiContext";
+import { Options } from "./options";
 
 export { ODataFunctions } from "./oDataFunctions";
 export { setParser } from "./filterExpressionBuilder";
@@ -20,14 +21,6 @@ export function ApiContextFactory<T extends IApiContextBase>(api: ApiMetadata | 
         return new ApiContextImpl(api, options) as any as ApiContext<T>;
     throw new Error("First parameter must be api url or metadata object");
 }
-
-export interface Options {
-    enumPrefixFree?: boolean,
-    enableUnqualifiedNameCall?: boolean,
-    fetch?: (input: RequestInfo, init?: RequestInit) => Promise<Response>;
-    format?: string;
-}
-
 
 /*
  * Base interfaces

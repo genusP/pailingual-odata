@@ -42,10 +42,13 @@ export interface Parent extends IEntityBase {
     numberField?: number;
     boolField?: boolean;
     dateField?: Date;
-    childs?: Child[];
     guid?: string;
-    complexType?: ComplexType,
-    enumField?: TestEnum,
+    complexType?: ComplexType;
+    enumField?: TestEnum;
+
+    childs?: Child[];
+    entityes?: TestEntity[];
+
     $$Actions: {
         boundAction(): void;
     };
@@ -79,6 +82,12 @@ export interface ChildDetails extends IEntityBase {
     detailsId: number
     childId: number
     enumField?: TestEnum
+}
+
+export interface TestEntity extends IEntityBase {
+    id: number;
+    parentId: number;
+    testEntityField: string;
 }
 
 export interface OpenType extends IEntityBase {
@@ -126,12 +135,20 @@ const childET = new EdmEntityType("Child",
     },
     { //navProperties
         "details": new EdmEntityTypeReference(childDetailsET, true, /*collection*/ true),
-        "parent": new EdmEntityTypeReference(parentET, true, /*collection*/ false)
+        "parent": new EdmEntityTypeReference(parentET, true, /*collection*/ false),
     },
     ["id"] //keys
 );
 
+const testEntityET = new EdmEntityType("TestEntity",
+    {
+        "id": new EdmTypeReference(EdmTypes.Int32, false),
+        "parentId": new EdmTypeReference(EdmTypes.Int32, false),
+        "testEntityField": new EdmTypeReference(EdmTypes.String, false)
+    })
+
 parentET.navProperties["childs"] = new EdmEntityTypeReference(childET, true, /*collection*/ true);
+parentET.navProperties["entityes"] = new EdmEntityTypeReference(testEntityET, true, /*collection*/ true);
 
 const parentExET = new EdmEntityType("ParentEx",
     { //properties:

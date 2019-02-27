@@ -3,7 +3,7 @@ import { CollectionSource } from "./collectionSource";
 import { SingleSource } from "./singleSource";
 import { EdmEntityType, ApiMetadata } from "./metadata";
 import { Executable } from "./executable";
-import { Options } from ".";
+import { Options } from "./options";
 
 export function expandExpressionBuild(propertyName: string, expression: Function, apiMetadata: ApiMetadata, entityType: EdmEntityType, options: Options): string {
     let navPropMD = entityType.navProperties[propertyName];
@@ -25,7 +25,7 @@ export function buildPathExpression(func: Function, metadata: EdmEntityType, api
     var entity = new SingleSource(metadata, apiMetadata, Query.create(new ApiMetadata(""), metadata, undefined));
     entity = func(entity);
     var path = entity.query.url(false);
-    if (path.startsWith("/"))
+    if (startsWith(path, "/"))
         return path.substr(1);
     return path;
 }
@@ -58,4 +58,16 @@ export function generateOperations(obj: any, queryAccessor: () => Query, apiMeta
             }
         }
     }
+}
+
+export function startsWith(str: string, search: string, position: number = 0) {
+    return str.indexOf(search, position) == position;
+}
+export function endsWith(subjectString: string, search: string, position?: number) {
+    if (position === undefined || position > subjectString.length) {
+        position = subjectString.length;
+    }
+    position -= search.length;
+    var lastIndex = subjectString.indexOf(search, position);
+    return lastIndex !== -1 && lastIndex === position;
 }
