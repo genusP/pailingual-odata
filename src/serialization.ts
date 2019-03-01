@@ -245,7 +245,7 @@ class MapObjToEntityType{
     }
 
     set(key: object, entityType: EdmEntityType): void {
-        if (!key)
+        if (key == null)
             throw new Error("Key must be set");
         let index = this.__keys.indexOf(key);
         if (index == -1)

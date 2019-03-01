@@ -94,6 +94,7 @@ export interface OpenType extends IEntityBase {
     prop1: number;
     prop2?: string;
     prop3?: ComplexType[];
+    prop4?: boolean;
 }
 
 const complexT= new EdmEntityType ("ComplexType", { "field": new EdmTypeReference(EdmTypes.String)});

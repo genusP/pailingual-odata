@@ -83,7 +83,8 @@ describe("", () => {
     it("Serialize open type", () => {
         const data: Entity<OpenType> = {
             prop1: 10,
-            prop2: "klio"
+            prop2: "klio",
+            prop4: false
         }
         const entityMD = metadata.namespaces["Default"].types["OpenType"] as EdmEntityType;
 
