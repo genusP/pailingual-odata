@@ -4,7 +4,6 @@ import { parse } from "acorn";
 import { ApiContextFactory } from "../src/index";
 import { Context, metadata, TestEnum } from "./models";
 import { setParser } from '../src/filterExpressionBuilder';
-import { EISDIR } from "constants";
 
 describe("Filter", () => {
 

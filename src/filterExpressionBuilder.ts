@@ -3,7 +3,7 @@ import { serializeValue } from "./serialization";
 import * as estree from "estree";
 import { Options } from "./options";
 
-type ParserDelegate = (fragment: string) => estree.Program;
+type ParserDelegate = (fragment: string) => any;
 
 var parse: ParserDelegate;
 
@@ -92,7 +92,7 @@ class Visitor {
         const transformName = "transform" + node.type;
         if (transformName in this)
             return (this as any)[transformName](node, metadata);
-        throw new Error(`Not suppoted node type '${node.type}'`);
+        throw new Error(`Not supported node type '${node.type}'`);
     }
 
     transformProgram(node: estree.Program, metadata: EdmEntityType): Expression {
@@ -101,7 +101,15 @@ class Visitor {
         return this.transform(node.body[0], metadata);
     }
 
-    transformFunctionDeclaration(node: estree.FunctionDeclaration, metadata: EdmEntityType): Expression {
+    transformExpressionStatement(node: estree.ExpressionStatement, metadata: EdmEntityType): Expression {
+        return this.transform(node.expression, metadata);
+    }
+
+    transformArrowFunctionExpression(node: estree.ArrowFunctionExpression, metadata: EdmEntityType): Expression {
+        return this.transformFunctionDeclaration(node, metadata);
+    }
+
+    transformFunctionDeclaration(node: estree.FunctionDeclaration | estree.ArrowFunctionExpression, metadata: EdmEntityType): Expression {
         let pos = 0;
         for (let p of node.params) {
             const argName = (p as estree.Identifier).name;
@@ -150,7 +158,7 @@ class Visitor {
 
     transformBinaryExpression(node: estree.BinaryExpression): Expression {
         if (!(node.operator in this.operatorMap))
-            throw new Error(`Notsupported operator '${node.operator}'`)
+            throw new Error(`Not supported operator '${node.operator}'`)
 
         let leftExp = this.transform(node.left);
         let rightExp = this.transform(node.right);
