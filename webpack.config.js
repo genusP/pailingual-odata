@@ -11,6 +11,9 @@ module.exports = (env, argv) => {
             libraryTarget: "umd",
             library: "pailingual-odata"
         },
+        optimization: {
+            namedModules:false
+        },
         module: {
             rules: [
                 { test: /\.ts$/, include: /src/, use: { loader: 'awesome-typescript-loader', options: { target: "es5", sourceMap: false, module:"es6" } } }
