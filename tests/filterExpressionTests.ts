@@ -35,6 +35,14 @@ describe("Filter", () => {
         assert.equal(actual, "/api/Parents?$filter=boolField eq false");
     });
 
+    it("int as boolean", () => {
+        const actual1 = context.Parents.$filter(e => e.boolField == 1 as any).$url();
+        const actual2 = context.Parents.$filter(e => e.boolField == 0 as any).$url();
+
+        assert.equal(actual1, "/api/Parents?$filter=boolField eq true");
+        assert.equal(actual2, "/api/Parents?$filter=boolField eq false");
+    });
+
     it("Or", () => {
         const actual = context.Parents.$filter(e => e.id == 1 || e.id === 2).$url();
         assert.equal(actual, "/api/Parents?$filter=id eq 1 or id eq 2");

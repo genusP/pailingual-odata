@@ -181,7 +181,7 @@ class Visitor {
 
         let resultExprStr = [left, this.operatorMap[node.operator], right].join(" ");
 
-        return new Expression(resultExprStr, new EdmTypeReference( EdmTypes.Boolean));
+        return new Expression(resultExprStr, curType!);
     }
 
     transformMemberExpression(node: estree.MemberExpression, metadata: EdmEntityType): Expression {

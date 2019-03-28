@@ -21,6 +21,9 @@ var converters: Record<string, Converter> = {
     "Edm.DateTimeOffset": {
         toEdm: (v: Date) => v.toISOString(),
         fromEdm: (v: string) => new Date(v)
+    },
+    "Edm.Boolean": {
+        toEdm: (v: boolean) => v ? "true" : "false"
     }
 }
 
