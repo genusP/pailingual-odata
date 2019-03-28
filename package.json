@@ -1,6 +1,6 @@
 {
   "name": "pailingual-odata",
-  "version": "1.0.0-beta.4",
+  "version": "1.0.0-rc.1",
   "description": "TypeScript client for OData v4 services",
   "author": "Gennady Pundikov",
   "main": "dist/pailingual.js",
@@ -27,11 +27,10 @@
     "odata-client",
     "typescript"
   ],
-  "dependencies": {
-    "@types/estree": "0.0.39"
-  },
+  "dependencies": { },
   "devDependencies": {
     "@types/chai": "^4.1.7",
+    "@types/estree": "0.0.39",
     "@types/mocha": "^5.2.0",
     "@types/node": "^10.12.18",
     "@types/node-fetch": "^2.1.4",
