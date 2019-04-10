@@ -276,7 +276,7 @@ export class Query {
             {
                 method: this._method,
                 body,
-                headers: { "Content-Type": inputFormatter.contentType },
+                headers: { "Content-Type": inputFormatter.contentType, "X-Requested-With":"XMLHttpRequest" },
                 credentials: options.credentials
             })
             .then(response => new Promise<{ response: Response, body?: string }>(
