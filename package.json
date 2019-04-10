@@ -27,10 +27,11 @@
     "odata-client",
     "typescript"
   ],
-  "dependencies": { },
+  "dependencies": {
+    "@types/estree": "0.0.39"
+  },
   "devDependencies": {
     "@types/chai": "^4.1.7",
-    "@types/estree": "0.0.39",
     "@types/mocha": "^5.2.0",
     "@types/node": "^10.12.18",
     "@types/node-fetch": "^2.1.4",
