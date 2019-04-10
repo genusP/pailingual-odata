@@ -1,6 +1,6 @@
 ﻿import { assert } from "chai";
 import { ODataFunctions } from '../src/index';
-import { queryFunc, ApiMetadata, EdmTypes, EdmEntityType, EdmEntityTypeReference, EdmTypeReference, EdmEnumType } from '../src/metadata';
+import { queryFunc, ApiMetadata, EdmTypes, EdmEntityType, EdmEntityTypeReference, EdmTypeReference, EdmEnumType, EdmComplexType } from '../src/metadata';
 
 if (typeof window === 'undefined') {
     require('jsdom-global')();
@@ -54,6 +54,8 @@ describe("", () => {
         var actual = ApiMetadata.loadFromXml("", xml);
 
         const parentsES = actual.entitySets["Parents"];
+        assert.instanceOf(parentsES, EdmEntityType);
+        assert.notInstanceOf(parentsES, EdmComplexType);
         assert.ok(parentsES, "EntitySet Parents not defined");
         assert.equal(parentsES.openType, true, "OpenType property should be true");
         assert.deepEqual(parentsES.keys, ["Id"], "Keys for entity Parent not equals");
@@ -62,6 +64,7 @@ describe("", () => {
         const enumField = parentsES.properties["enumField"];
         assert.equal(actual.namespaces["Default"].types["TestEnum"], enumField.type);
         assert.deepEqual((actual.namespaces["Default"].types["TestEnum"] as EdmEnumType).members, { "Type1": 1, "Type2": 2 });
+        assert.instanceOf(actual.namespaces["Default"].types["ComplexType"], EdmComplexType);
         assert.deepEqual(parentsES.properties["complexField"].type, actual.namespaces["Default"].types["ComplexType"]);
         assert.deepEqual(parentsES.navProperties["childs"], { type: actual.namespaces["Default"].types["Child"]||-1, collection: true, nullable: true });
     });

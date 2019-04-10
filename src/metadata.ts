@@ -1,5 +1,6 @@
 import { startsWith, endsWith } from "./utils";
 import { Options } from "./options";
+import { type } from "os";
 
 const COLLECTION_TYPE_PREFIX = "Collection(";
 
@@ -32,6 +33,10 @@ export class EdmEntityType
     ) { }
 
     getFullName = () => getFullName(this);
+}
+
+export class EdmComplexType extends EdmEntityType {
+
 }
 
 export class EdmEnumType
@@ -234,8 +239,24 @@ export class ApiMetadata {
 
         let entityTypes: Array<{ element: Element, typeMetadata: EdmEntityType }> = [];
         const list = metadataDoc.querySelectorAll("Schema>ComplexType,Schema>EntityType,Schema>EnumType");
+
         for (var i = 0; i < list.length; i++){
             const e = list.item(i);
+
+            const getOrAddEdmEntityType = function(namespace: string, name: string){
+                let namespaceMD = namespaces[namespace]; 
+                if (!namespaceMD)
+                    namespaces[namespace] = namespaceMD = new Namespace(namespace);
+                let typeMetadata = namespaceMD.types[name] as EdmEntityType;
+                if (!typeMetadata) {
+                    typeMetadata = e.tagName.toLowerCase() == "complextype"
+                        ? new EdmComplexType(name, {})
+                        : new EdmEntityType(name, {});
+                    namespaceMD.addTypes(typeMetadata);
+                }
+                return typeMetadata;
+            }
+
             let ns = getRequiredAttributeValue(e.parentElement as Element, "Namespace");
             let name = getRequiredAttributeValue(e,"Name");
             if (!(ns in namespaces))
@@ -245,24 +266,13 @@ export class ApiMetadata {
                 namespaces[ns].addTypes(enumType);
             }
             else {
-                let typeMetadata = namespaces[ns].types[name] as EdmEntityType || new EdmEntityType(name, {})
-                namespaces[ns].addTypes(typeMetadata);
-                const openTypeAttr = e.attributes.getNamedItem("OpenType");
-                if (openTypeAttr && openTypeAttr.value == "true")
-                    typeMetadata.openType = true;
-                const baseTypeAttr = e.attributes.getNamedItem("BaseType");
-                const baseType = baseTypeAttr && baseTypeAttr.value;
+                let typeMetadata = getOrAddEdmEntityType(ns, name);
+                typeMetadata.openType = getAttributeBoolValue(e,"OpenType");
+                const baseType = getAttributeValue(e,"BaseType");
                 if (baseType) {
                     const baseTypeNS = baseType.substring(0, baseType.lastIndexOf("."));
                     const baseTypeName = baseType.substr(baseTypeNS.length + 1);
-                    let btns = namespaces[baseTypeNS];
-                    if (!btns)
-                        namespaces[baseTypeNS] = btns = new Namespace(baseTypeNS);
-                    let bt = btns.types[baseTypeName] as EdmEntityType;
-                    if (!bt) {
-                        bt = new EdmEntityType(baseTypeName, {});
-                        btns.addTypes(bt);
-                    }
+                    let bt = getOrAddEdmEntityType(baseTypeNS, baseTypeName);
                     typeMetadata.baseType = bt;
                 }
                 entityTypes.push({ element: e, typeMetadata });
@@ -348,8 +358,6 @@ export class ApiMetadata {
 
     static getOperationMetadata(operationElement: Element, namespaces: Namespaces): OperationMetadata {
         const isAction = operationElement.tagName.toLowerCase() === "action";
-        const isBoundAttr = operationElement.attributes.getNamedItem("IsBound");
-        const isBound = isBoundAttr !== null && isBoundAttr.value.toLowerCase() == "true";
         const name = getRequiredAttributeValue(operationElement, "Name");
         const returnTypeElement = operationElement.querySelector("ReturnType");
         const returnType = returnTypeElement
@@ -362,7 +370,7 @@ export class ApiMetadata {
             const e = list.item(i);
             const type = ApiMetadata.getType(e, namespaces);
             const name = getRequiredAttributeValue(e, "Name");
-            if (isBound && !bindingTo)
+            if (getAttributeBoolValue(operationElement, "IsBound") && !bindingTo)
                 bindingTo = EdmEntityTypeReference.fromTypeReference(type);
             else
                 parameters.push({ name, type });
@@ -376,18 +384,23 @@ export class ApiMetadata {
         if (collection)
             typeName = typeName.substring(COLLECTION_TYPE_PREFIX.length, typeName.length - 1);
         const typeMetadata = ApiMetadata.getEdmTypeMetadata(typeName, namespaces);
-        const nullableAttr = element.attributes.getNamedItem("Nullable");
         const res = new EdmTypeReference(typeMetadata, true, collection);
-        if (nullableAttr)
-            res.nullable = nullableAttr.value.toLowerCase() == 'true';
+        res.nullable = getAttributeBoolValue(element, "Nullable") != false;
         return res;
     }
 }
 
 function getRequiredAttributeValue(element: Element, attrName: string): string {
+    return getAttributeValue(element, attrName) || (() => {
+        throw new Error(`Metadata: Attribute '${attrName}' in element '${element.tagName}' not found `)
+    })();
+}
+function getAttributeBoolValue(element: Element, attrName: string): boolean | undefined {
+    var r = getAttributeValue(element, attrName);
+    if (r != undefined) return r.toLowerCase() == "true";
+}
+function getAttributeValue(element: Element, attrName: string): string | undefined {
     var attr = element.attributes.getNamedItem(attrName);
     if (attr)
         return attr.value;
-
-    throw new Error(`Metadata: Attribute '${attrName}' in element '${element.tagName}' not found `);
 }
