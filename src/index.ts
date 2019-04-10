@@ -1,4 +1,4 @@
-﻿import { ODataFunctions } from "./ODataFunctions";
+﻿import { ODataFunctions } from "./oDataFunctions";
 import { ApiMetadata, loadMetadata } from "./metadata";
 import { ApiContextImpl } from "./apiContext";
 import { Options } from "./options";
