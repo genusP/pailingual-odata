@@ -327,7 +327,7 @@ export class ApiMetadata {
         const res = ApiMetadata.getEdmTypeMetadata(typeName, namespaces);
         if (res instanceof EdmEntityType)
             return res;
-        throw new Error("EntitySet item type mast be entity");
+        throw new Error("EntitySet item type must be entity");
     }
 
     static getEdmTypeMetadata(typeName: string, namespaces: Namespaces): EdmEntityType | EdmEnumType {
