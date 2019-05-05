@@ -253,7 +253,7 @@ describe("Operations", () => {
     it("throw error if parameter not exists in metadata", () => {
         const ns = new Namespace("Default");
         ns.addOperations(new OperationMetadata("unboundFuncPrimitive", false));
-        const brokenMetadata = new ApiMetadata("/api", { "Default": ns });
+        const brokenMetadata = new ApiMetadata("/api","", { "Default": ns });
 
         const query = ApiContextFactory<Context>(brokenMetadata).unboundFuncPrimitive("arg");
 

@@ -1,6 +1,6 @@
 {
   "name": "pailingual-odata",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0-rc.3",
   "description": "TypeScript client for OData v4 services",
   "author": "Gennady Pundikov",
   "main": "dist/pailingual.js",

@@ -198,4 +198,4 @@ var entitySets = {
     "OpenTypes": openTypeET
 };
 var singletons = { "Singleton": parentET };
-export var metadata = new ApiMetadata("/api", {"Default": namespace}, entitySets, singletons);
+export var metadata = new ApiMetadata("/api","Container", {"Default": namespace}, entitySets, singletons);

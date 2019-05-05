@@ -1,6 +1,5 @@
 import { startsWith, endsWith } from "./utils";
 import { Options } from "./options";
-import { type } from "os";
 
 const COLLECTION_TYPE_PREFIX = "Collection(";
 
@@ -186,6 +185,7 @@ export function loadMetadata(apiRoot: string, options?: Options, cache = true): 
 export class ApiMetadata {
     constructor(
         readonly apiRoot: string,
+        readonly containerName: string,
         readonly namespaces: Namespaces = {},
         readonly entitySets: Record<string, EdmEntityType> = {},
         readonly singletons: Record<string, EdmEntityType> = {}
@@ -198,19 +198,18 @@ export class ApiMetadata {
         const namespaces = ApiMetadata.getEntityTypes(metadataDoc);
         const entitySets: Record<string, EdmEntityType> = {};
         const singletons: Record<string, EdmEntityType> = {};
-        const list = metadataDoc.querySelectorAll("Schema>EntityContainer>EntitySet");
-        for (var i = 0; i < list.length; i++){
-            const e = list.item(i)
-            let esName = getRequiredAttributeValue(e,"Name");
-            let typeName = getRequiredAttributeValue(e, "EntityType");
-            entitySets[esName] = ApiMetadata.getEntitySetMetadata(typeName, namespaces);
-        }
-        const list2 = metadataDoc.querySelectorAll("Schema>EntityContainer>Singleton");
-        for (var i = 0; i < list2.length; i++){
-            const e = list2.item(i);
-            let sName = getRequiredAttributeValue(e, "Name");
-            let typeName = getRequiredAttributeValue(e, "Type");
-            singletons[sName] = ApiMetadata.getEntityMetadata(typeName, namespaces);
+        const container = metadataDoc.querySelector("Schema>EntityContainer")!;
+        const containerName = container && getRequiredAttributeValue(container, "Name");
+        if (container) {
+            const list = container.querySelectorAll("EntitySet,Singleton");
+            for (var i = 0; i < list.length; i++) {
+                const e = list.item(i)
+                const isSingleton = e.tagName.toUpperCase() === "SINGLETON";
+                let name = getRequiredAttributeValue(e, "Name");
+                let typeName = getRequiredAttributeValue(e, isSingleton ? "Type" : "EntityType");
+                const target = isSingleton ? singletons : entitySets;
+                target[name] = ApiMetadata.getEntitySetMetadata(typeName, namespaces);
+            }
         }
         const list3 = metadataDoc.querySelectorAll("Schema>Function,Schema>Action");
         for (var i = 0; i < list3.length; i++){
@@ -222,7 +221,7 @@ export class ApiMetadata {
             namespaces[namespaceName].addOperations(metadata);
         }
 
-        return new ApiMetadata(apiRoot, namespaces, entitySets, singletons);
+        return new ApiMetadata(apiRoot, containerName, namespaces, entitySets, singletons);
     }
 
     static async loadAsync(apiRoot: string, options?: Options) {
@@ -329,13 +328,6 @@ export class ApiMetadata {
         if (res instanceof EdmEntityType)
             return res;
         throw new Error("EntitySet item type mast be entity");
-    }
-
-    static getEntityMetadata(typeName: string, namespaces: Namespaces) {
-        const res = ApiMetadata.getEdmTypeMetadata(typeName, namespaces);
-        if (res instanceof EdmEntityType)
-            return res;
-        throw new Error("Entity type mast be entity");
     }
 
     static getEdmTypeMetadata(typeName: string, namespaces: Namespaces): EdmEntityType | EdmEnumType {

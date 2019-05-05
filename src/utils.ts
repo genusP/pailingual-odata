@@ -22,7 +22,7 @@ export function expandExpressionBuild(propertyName: string, expression: Function
 }
 
 export function buildPathExpression(func: Function, metadata: EdmEntityType, apiMetadata: ApiMetadata) {
-    var entity = new SingleSource(metadata, apiMetadata, Query.create(new ApiMetadata(""), metadata, undefined));
+    var entity = new SingleSource(metadata, apiMetadata, Query.create(null as any, metadata, undefined));
     entity = func(entity);
     var path = entity.query.url(false);
     if (startsWith(path, "/"))
