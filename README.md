@@ -45,6 +45,7 @@ Types
   - Edm.Decimal
 
 ## How to define a model
+You can use [pailingual-odata-model-generatior](https://www.npmjs.com/package/pailingual-odata-model-generator) for generate model from service metadata.
 
 ### Defining an entity
 Define your own interface extending interface IEntityBase
