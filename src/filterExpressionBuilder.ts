@@ -64,13 +64,17 @@ class Expression {
     ) { }
 
     toString(type: EdmTypes | EdmEntityType | EdmEnumType | EdmTypeReference | undefined, options: Options): string {
-        if (this.value!=null) {
-            let curType = (type as EdmTypeReference).type
-                || type 
-                || (this.type && this.type.type);
+        if (this.value != null) {
+            let curType = type instanceof EdmTypeReference
+                ? type.type
+                : type || (this.type && this.type.type);
             var res: string | null = null;
-            if (curType)
-                res = serializeValue(this.value, curType as EdmTypes, true, options);
+            if (curType) {
+                if (Array.isArray(this.value))
+                    res = `(${this.value.map(v => serializeValue(v, curType as EdmTypes, true, options)).join(',')})`
+                else
+                    res = serializeValue(this.value, curType as EdmTypes, true, options);
+            }
             return res || this.value.toString() as string;
         }
         return this.expression;
@@ -213,6 +217,14 @@ class Visitor {
         const v = node.value == null ? "null"
             : node.value.toString();
         return new Expression(v, undefined, node.value);
+    }
+
+    transformArrayExpression(node: estree.ArrayExpression): Expression {
+        return new Expression(
+            "",
+            undefined,
+            node.elements.map(e => this.transform(e))
+        )
     }
 
     transformLogicalExpression(node: estree.LogicalExpression): Expression {

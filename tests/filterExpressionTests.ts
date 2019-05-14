@@ -168,4 +168,38 @@ describe("Filter", () => {
             .$url();
         assert.equal(actual, "/api/Parents?$filter=childs/any(d:d/childField eq '1')");
     });
+
+    it("in operator", () => {
+        const actual = context.Parents
+            .$filter(e => e.strField in ["a", "b", "c"])
+            .$url();
+
+        assert.equal(actual, "/api/Parents?$filter=strField in ('a','b','c')");
+    });
+
+    it("in operator 2", () => {
+        const actual = context.Parents
+            .$filter(e => e.numberField in [1, 2, 3])
+            .$url();
+
+        assert.equal(actual, "/api/Parents?$filter=numberField in (1,2,3)");
+    });
+
+    it("in operator with param", () => {
+        const list = ["a", "b", "c"];
+        const actual = context.Parents
+            .$filter((e, p) => e.strField in p.list, { list })
+            .$url();
+
+        assert.equal(actual, "/api/Parents?$filter=strField in ('a','b','c')");
+    });
+
+    it("in operator with param 2", () => {
+        const element = "c";
+        const actual = context.Parents
+            .$filter((e, p) => e.strField in ["a","b",p.element], { element })
+            .$url();
+
+        assert.equal(actual, "/api/Parents?$filter=strField in ('a','b','c')");
+    })
 });
