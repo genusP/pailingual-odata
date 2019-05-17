@@ -116,53 +116,6 @@ export class Namespace {
 };
 
 type Namespaces = Record<string, Namespace>;
-export type QueryFuncMetadata = { return: EdmTypes, arguments: EdmTypes[] };
-
-export var queryFunc: Record<string, QueryFuncMetadata[]> = {
-    "concat":     [{ return: EdmTypes.String, arguments: [EdmTypes.String, EdmTypes.String]}],
-    "contains":   [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String]}],
-    "endswith":   [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String]}],
-    "indexof":    [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String]}],
-    "length":     [{ return: EdmTypes.Int32, arguments: [EdmTypes.String] }],
-    "startswith": [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String] }],
-    "substring":  [{ return: EdmTypes.String, arguments: [EdmTypes.String, EdmTypes.Int32] },
-                   { return: EdmTypes.String, arguments: [EdmTypes.String, EdmTypes.Int32, EdmTypes.Int32]}],
-
-    //String functions
-    "tolower": [{ return: EdmTypes.String, arguments: [EdmTypes.String] }],
-    "toupper": [{ return: EdmTypes.String, arguments: [EdmTypes.String] }],
-    "trim":    [{ return: EdmTypes.String, arguments: [EdmTypes.String] }],
-
-    //Date functions
-    "date": [{ return: EdmTypes.Date, arguments: [EdmTypes.DateTimeOffset] }],
-    "day":  [{ return: EdmTypes.Int32, arguments: [EdmTypes.Date]},
-             { return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset]}],
-    "fractionalseconds": [{ return: EdmTypes.Decimal, arguments: [EdmTypes.DateTimeOffset] },
-                          { return: EdmTypes.Decimal, arguments: [EdmTypes.TimeOfDay]}],
-    "hour": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
-             { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay]}],
-    "maxdatetime": [{ return: EdmTypes.DateTimeOffset, arguments: [] }],
-    "mindatetime": [{ return: EdmTypes.DateTimeOffset, arguments: [] }],
-    "minute": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
-               { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay]}],
-    "month": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
-              { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay]}],
-    "now": [{ return: EdmTypes.DateTimeOffset, arguments: [] }],
-    "second": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
-               { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay]}],
-    "time": [{ return: EdmTypes.TimeOfDay, arguments: [EdmTypes.DateTimeOffset] }],
-    "totaloffsetminutes": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] }],
-    "year": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
-             { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay]}],
-
-    //Arithmetic Functions
-    "celling": [{ return: EdmTypes.Double, arguments: [EdmTypes.Double] },
-        { return: EdmTypes.Decimal, arguments: [EdmTypes.Decimal] }],
-    "floor": [{ return: EdmTypes.Double, arguments: [EdmTypes.Double] },
-              { return: EdmTypes.Decimal, arguments: [EdmTypes.Decimal] }],
-    "round": [{ return: EdmTypes.Double, arguments: [EdmTypes.Double] },
-              { return: EdmTypes.Decimal, arguments: [EdmTypes.Decimal] }]
-};
 
 var __metadataCache: Record<string, Readonly<ApiMetadata>> = {};
 

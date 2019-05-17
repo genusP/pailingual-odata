@@ -1,25 +1,13 @@
 ﻿import { assert } from "chai";
-import { ODataFunctions } from '../src/index';
-import { queryFunc, ApiMetadata, EdmTypes, EdmEntityType, EdmEntityTypeReference, EdmTypeReference, EdmEnumType, EdmComplexType } from '../src/metadata';
+import { ApiMetadata, EdmTypes, EdmEntityType, EdmEntityTypeReference, EdmTypeReference, EdmEnumType, EdmComplexType } from '../src/metadata';
 
 if (typeof window === 'undefined') {
     require('jsdom-global')();
     (global as any).DOMParser = (window as any).DOMParser;
 }
 
-describe("", () => {
-    it("Exist metadata query options filter", () => {
-        let funcs = new QueryFunctions() as any as Record<string, Function>;
-        for (let fn in funcs) {
-            let func = funcs[fn];
-            var argsCnt = func.length;
-
-            const metadata = queryFunc[fn];
-            assert.ok(metadata, `Metadata for query function '${fn}' not registred`);
-            assert.ok(metadata.filter(m => m.arguments.length == argsCnt).length!=0, `Argument count not equals for '${fn}'`)
-        }
-    });
-
+describe("", () =>
+{
     it("Load metadata from XML", () => {
         const xml = `<edmx:Edmx xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" Version="4.0">
 <edmx:DataServices>
@@ -169,84 +157,3 @@ describe("", () => {
         assert.deepEqual(colboundMD[0].bindingTo, new EdmEntityTypeReference(baseEdmEntityType, true, true), "colBound");
     })
 });
-
-class QueryFunctions implements ODataFunctions {
-    concat<T extends string | any[]>(left: T, right: T): T {
-        throw new Error("Method not implemented.");
-    }
-    contains(left: string, right: string): boolean {
-        throw new Error("Method not implemented.");
-    }
-    endswith(text: string, search: string): boolean {
-        throw new Error("Method not implemented.");
-    }
-    indexof(text: string, search: string): number {
-        throw new Error("Method not implemented.");
-    }
-    length(text: string): number {
-        throw new Error("Method not implemented.");
-    }
-    startswith(text: string, search: string): boolean {
-        throw new Error("Method not implemented.");
-    }
-    substring(text: string, start: number, length?: number | undefined): string {
-        throw new Error("Method not implemented.");
-    }
-    tolower(text: string): string {
-        throw new Error("Method not implemented.");
-    }
-    toupper(text: string): string {
-        throw new Error("Method not implemented.");
-    }
-    trim(text: string): string {
-        throw new Error("Method not implemented.");
-    }
-    date(datetime: Date): Date {
-        throw new Error("Method not implemented.");
-    }
-    day(date: Date): number {
-        throw new Error("Method not implemented.");
-    }
-    fractionalseconds(date: Date): number {
-        throw new Error("Method not implemented.");
-    }
-    hour(date: Date): number {
-        throw new Error("Method not implemented.");
-    }
-    maxdatetime(): Date {
-        throw new Error("Method not implemented.");
-    }
-    mindatetime(): Date {
-        throw new Error("Method not implemented.");
-    }
-    minute(date: Date): number {
-        throw new Error("Method not implemented.");
-    }
-    month(date: Date): number {
-        throw new Error("Method not implemented.");
-    }
-    now(): Date {
-        throw new Error("Method not implemented.");
-    }
-    second(date: Date): number {
-        throw new Error("Method not implemented.");
-    }
-    time(date: Date): Date {
-        throw new Error("Method not implemented.");
-    }
-    totaloffsetminutes(date: Date): number {
-        throw new Error("Method not implemented.");
-    }
-    year(date: Date): number {
-        throw new Error("Method not implemented.");
-    }
-    celling(value: number): number {
-        throw new Error("Method not implemented.");
-    }
-    floor(value: number): number {
-        throw new Error("Method not implemented.");
-    }
-    round(value: number): number {
-        throw new Error("Method not implemented.");
-    }
-}

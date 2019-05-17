@@ -71,3 +71,15 @@ export function endsWith(subjectString: string, search: string, position?: numbe
     var lastIndex = subjectString.indexOf(search, position);
     return lastIndex !== -1 && lastIndex === position;
 }
+
+export function _extends(ctor: Function, funcs?: Record<string, Function>) {
+    if (funcs) {
+        for (var name in funcs) {
+            let base = ctor.prototype[name];
+            let func = funcs[name];
+            ctor.prototype[name] = function () {
+                return func.apply(this, [base && base.bind(this)].concat(arguments) );
+            }
+        }
+    }
+}

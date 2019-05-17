@@ -8,8 +8,8 @@ import { Options } from "./options";
 
 export class ApiContextImpl{
     constructor(
-        private readonly __metadata: ApiMetadata,
-        private readonly __options?: Options)
+        protected readonly __metadata: ApiMetadata,
+        protected readonly __options?: Options)
     {
         this.generate();
     }

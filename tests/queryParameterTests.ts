@@ -1,9 +1,9 @@
 ﻿import { assert } from "chai";
 
-import { ApiContextFactory } from "../src/index";
-import { Context, metadata, ParentEx, TestEnum } from "./models";
+import { Pailingual } from "../src/index";
+import { Context, metadata, ParentEx } from "./models";
 
-const context = ApiContextFactory<Context>(metadata);
+const context = Pailingual.createApiContext<Context>(metadata);
 
 describe("Entity", () => {
 
@@ -42,7 +42,7 @@ describe("Entity", () => {
             .$expand("childs", e => e.$filter("id eq 1").$select("childField"))
             .$select("childs")
             .$url();
-        assert.equal(url, "/api/Parents?$select=childs&$expand=childs($select=childField;$filter=id eq 1)");
+        assert.equal(url, "/api/Parents?$expand=childs($filter=id eq 1;$select=childField)&$select=childs");
     });
 
     it("Order by 1", () => {
@@ -93,7 +93,7 @@ describe("Entity", () => {
             .$top(1)
             .$skip(10)
             .$url();
-        assert.equal(url, "/api/Parents?$skip=10&$top=1");
+        assert.equal(url, "/api/Parents?$top=1&$skip=10");
     });
 
     it("Filter ", () => {
@@ -145,7 +145,7 @@ describe("Entity", () => {
         const url = context.Parents
             .$expand("childs", e => e.$filter("id eq 1").$select("childField"))
             .$url();
-        assert.equal(url, "/api/Parents?$expand=childs($select=childField;$filter=id eq 1)");
+        assert.equal(url, "/api/Parents?$expand=childs($filter=id eq 1;$select=childField)");
     });
 
     it("E: Expand(select, filter)", () => {
@@ -153,7 +153,7 @@ describe("Entity", () => {
             .$byKey(1)
             .$expand("childs", e => e.$filter("id eq 1").$select("childField"))
             .$url();
-        assert.equal(url, "/api/Parents(1)?$expand=childs($select=childField;$filter=id eq 1)");
+        assert.equal(url, "/api/Parents(1)?$expand=childs($filter=id eq 1;$select=childField)");
     });
 
     it("E: Expand(select, search)", () => {
@@ -161,7 +161,7 @@ describe("Entity", () => {
             .$byKey(1)
             .$expand("childs", e => e.$search("searchExpr").$select("childField"))
             .$url();
-        assert.equal(url, "/api/Parents(1)?$expand=childs($select=childField;$search=searchExpr)");
+        assert.equal(url, "/api/Parents(1)?$expand=childs($search=searchExpr;$select=childField)");
     });
 
     it("E: Expand str expression", () => {
@@ -230,7 +230,7 @@ describe("Entity", () => {
             .$expand("childs", p => p.$select("id"))
             .$select("id", "strField")
             .$url()
-         assert.equal(url, "/api/Parents?$select=id,strField&$expand=childs($select=id)");
+         assert.equal(url, "/api/Parents?$expand=childs($select=id)&$select=id,strField");
     });
 
     it("E: $select and $expand in one query", () => {
@@ -238,7 +238,7 @@ describe("Entity", () => {
             .$expand("childs", p => p.$select("id"))
             .$select("id", "strField")
             .$url()
-        assert.equal(url, "/api/Parents(1)?$select=id,strField&$expand=childs($select=id)");
+        assert.equal(url, "/api/Parents(1)?$expand=childs($select=id)&$select=id,strField");
     });
 
     it("Count", () => {
@@ -253,7 +253,7 @@ describe("Entity", () => {
             .$select("id", "strField")
             .$urlWithCount();
 
-        assert.equal(url, "/api/unboundFuncEntityCol()?$select=id,strField&$skip=10&$top=10&$count=true");    });
+        assert.equal(url, "/api/unboundFuncEntityCol()?$top=10&$skip=10&$select=id,strField&$count=true");    });
 });
 
 describe("Functions", () => {

@@ -1,26 +1,49 @@
-﻿import { ODataFunctions } from "./oDataFunctions";
-import { ApiMetadata, loadMetadata } from "./metadata";
+﻿import { ApiMetadata, loadMetadata } from "./metadata";
 import { ApiContextImpl } from "./apiContext";
-import { Options } from "./options";
+import { Options, ExtendOptions } from "./options";
+import { _extends } from "./utils";
+import { CollectionSource } from "./collectionSource";
+import { SingleSource } from "./singleSource";
+import { Query } from "./query";
 
-export { ODataFunctions } from "./oDataFunctions";
-export { setParser } from "./filterExpressionBuilder";
 export { loadMetadata } from "./metadata";
 
-/*
- * Factories 
- */
-export function ApiContextFactory<T extends IApiContextBase>(metadata: ApiMetadata, options?: Options): ApiContext<T>;
-export function ApiContextFactory<T extends IApiContextBase>(apiRoot: string, options?: Options): Promise<ApiContext<T>>;
-export function ApiContextFactory<T extends IApiContextBase>(api: ApiMetadata | string, options?: Options): Promise<ApiContext<T>> | ApiContext<T> {
-    if (typeof api == "string") {
-        return loadMetadata(api)
-            .then(m => new ApiContextImpl(m, options) as any as ApiContext<T>);
+
+export class Pailingual {
+    static use(plugin: { register: () => ExtendOptions | void }) {
+        if (plugin) {
+            const ext = plugin.register();
+            if (ext) {
+                ext.apiContextFn && _extends(ApiContextImpl, ext.apiContextFn);
+                ext.collectionSourceFn && _extends(CollectionSource, ext.collectionSourceFn);
+                ext.singleSourceFn && _extends(SingleSource, ext.singleSourceFn);
+                ext.queryFn && _extends(Query, ext.queryFn);
+            }
+        }
     }
-    else if (api instanceof ApiMetadata)
-        return new ApiContextImpl(api, options) as any as ApiContext<T>;
-    throw new Error("First parameter must be api url or metadata object");
+    /*
+     * Factories 
+     */
+    static createApiContext<T extends IApiContextBase>(metadata: ApiMetadata, options?: Options): ApiContext<T>;
+    static createApiContext<T extends IApiContextBase>(apiRoot: string, options?: Options): Promise<ApiContext<T>>;
+    static createApiContext<T extends IApiContextBase>(api: ApiMetadata | string, options?: Options): Promise<ApiContext<T>> | ApiContext<T> {
+        if (typeof api == "string") {
+            return loadMetadata(api)
+                .then(m => new ApiContextImpl(m, options) as any as ApiContext<T>);
+        }
+        else if (api instanceof ApiMetadata)
+            return new ApiContextImpl(api, options) as any as ApiContext<T>;
+        throw new Error("First parameter must be api url or metadata object");
+    }
+
+    static loadMetadata(apiRoot: string, options?: Options, cache?: boolean) {
+        return loadMetadata(apiRoot, options, cache);
+    }
 }
+
+export default Pailingual;
+/** @deprecated Use Palingual.createApiContext function */
+export var ApiContextFactory = Pailingual.createApiContext;
 
 /*
  * Base interfaces
@@ -134,9 +157,8 @@ export interface IEntitySetFunctionSource<T, R={}> extends IEntitySetFunctionSou
     $select<F extends PrimitiveProps<T> | ComplexProps<T> | (keyof R & keyof T)>(...props: F[]): IExecutableWithCount<T, R & Pick<T, F>>;
 }
 
-interface IEntitySetFunctionSourceBase<T> {
+export interface IEntitySetFunctionSourceBase<T> {
     $filter(expression: string): this;
-    $filter<TParams>(expression: FilterExpression<T, TParams>, params?: TParams): this;
     $orderBy(...key: (PrimitiveProps<T> | ((e: OrderbySource<T>) => PrimitiveTypes))[]): this;
     $orderByDesc(...key: (PrimitiveProps<T> | ((e: OrderbySource<T>) => PrimitiveTypes))[]): this;
     $skip(num: number): this;
@@ -191,19 +213,6 @@ export interface IExpandebleSet<T, R> extends IEntitySetFunctionSourceBase<T>{
 }
 
 interface IExpandSelectResult<R> {interfaceMarker:never }
-
-type FilterSource<T> = {
-    [P in AllProps<T>]-?: T[P] extends EntityArray<infer U> | undefined ? IFilterNavigationEntitySet<U> :
-    T[P] extends ComplexArray<infer U> | undefined ? IFilterNavigationEntitySet<U> :
-    T[P] extends IEntityBase | IComplexBase ? Entity<T[P]> : Exclude<T[P] , undefined>
-};
-
-interface IFilterNavigationEntitySet<T>{
-    any(predicate: (d: FilterSource<T>) => boolean): boolean;
-    all(predicate: (d: FilterSource<T>) => boolean): boolean;
-}
-
-export type FilterExpression<T, TParams> = (e: FilterSource<T>, p: TParams, funcs: ODataFunctions) => boolean;
 
 export type OrderbySource<T> = {
     [P in PrimitiveProps<T> | ComplexProps<T> | NavigationEntityProps<T>]-?:

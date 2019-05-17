@@ -1,19 +1,18 @@
 import { EdmEntityType, OperationMetadata, EdmTypes, ApiMetadata, EdmTypeReference } from "./metadata";
 import { getFormatter, serializeValue } from "./serialization";
 import { Options } from "./options";
-import { buildExpression } from "./filterExpressionBuilder";
 import { expandExpressionBuild, startsWith } from "./utils";
 
 export class Query {
-    private _segments: Segment[]=[];
-    private params: QueryParams = {};
-    private _method: ODataMethods = "get";
-    private _payload: any;
+    protected _segments: Segment[] = [];
+    protected params: QueryParams = {};
+    protected _method: ODataMethods = "get";
+    protected _payload: any;
 
     private constructor(
-        private readonly _apiMetadata: ApiMetadata,
-        private _entityMetadata: EdmEntityType,
-        private readonly _options?: Options
+        protected readonly _apiMetadata: ApiMetadata,
+        protected _entityMetadata: EdmEntityType,
+        protected readonly _options?: Options
     ) { }
 
     static create(apiMetadata: ApiMetadata, entityMetadata: EdmEntityType, options: Options | undefined): Query {
@@ -26,18 +25,15 @@ export class Query {
         let cloneArray: (a: Array<any> | undefined) => any =
             (a: any) => a ? [...a] : null;
 
-        let p: Required<QueryParams> = {
-            count: this.params.count as boolean,
-            filter: cloneArray( this.params.filter),
-            expand: cloneArray( this.params.expand),
-            orderBy: cloneArray(this.params.orderBy),
-            search: cloneArray(this.params.search),
-            select: cloneArray(this.params.select),
-            skip: this.params.skip as number,
-            top: this.params.top as number,
+        for (const name of Object.getOwnPropertyNames(this.params)) {
+            let val = (this.params as any)[name]
+            if (val != undefined) {
+                (res.params as any)[name] = Array.isArray(val)
+                    ? cloneArray(val)
+                    : val;
+            }
         }
 
-        res.params = p;
         res._method = this._method;
         res._payload = this._payload;
         if (beforeFreeze)
@@ -151,18 +147,14 @@ export class Query {
         });
     }
 
-    filter(expr: string | Function, params?: object)
+    filter(expr: string)
     {
         return this._clone(q => {
             let filters = (q.params.filter == null)
                 ? q.params.filter = new Array<string>()
                 : q.params.filter;
 
-            const expression = typeof expr === "function"
-                ? { func: expr as Function, params }
-                : expr as string
-
-            filters.push(expression);
+            filters.push(expr);
         });
     }
 
@@ -224,29 +216,31 @@ export class Query {
     }
 
     buildParams(options: Options, separator = "&") {
-        let items = [];
-        if (this.params) {
-            if (this.params.select)
-                items.push("$select=" + this.params.select.join(","));
-            if (this.params.expand)
-                items.push("$expand=" + this.params.expand.map(e => this.expandToString(e, options)).join(","));
-            if (this.params.filter)
-                items.push("$filter=" + this.params.filter.map(f => this.filterToString(f, options)).join(" and "));
-            if (this.params.orderBy)
-                items.push("$orderby=" + this.params.orderBy.join(","));
-            if (this.params.skip)
-                items.push("$skip=" + this.params.skip);
-            if (this.params.top)
-                items.push("$top=" + this.params.top);
-            if (this.params.count)
-                items.push("$count=true");
-            if (this.params.search)
-                items.push("$search=" + this.params.search.join(" AND "));
-        }
+        return Object.getOwnPropertyNames(this.params)
+            .map(n => this.params[n] && this.processParametr(n, this.params[n], options))
+            .filter(v => v)
+            .join(separator);
+    }
 
-        return items
-            ? items.join(separator)
-            :"";
+    processParametr(name: string, value: any, options: Options): string | undefined {
+        switch (name) {
+            case "select":
+                return "$select=" + value.join(",");
+            case "expand":
+                return "$expand=" + value.map((e: ExpandExpr) => this.expandToString(e, options)).join(",");
+            case "filter":
+                return "$filter=" + value.join(" and ");
+            case "orderBy":
+                return "$orderby=" + value.join(",");
+            case "skip":
+                return "$skip=" + value;
+            case "top":
+                return "$top=" + value;
+            case "count":
+                return value === true ? "$count=true" : undefined;
+            case "search":
+                return "$search=" + value.join(" AND ");
+        }
     }
 
     private expandToString(e: ExpandExpr, options: Options) {
@@ -254,13 +248,6 @@ export class Query {
             return expandExpressionBuild(e.expand, e.expr, this._apiMetadata, this._entityMetadata, options);
         return e.expand;
     }
-    private filterToString(expr: string | FilterExpr, options: Options): string {
-        if (typeof expr === "string")
-            return expr;
-        else
-            return buildExpression(expr.func, expr.params || {}, this._entityMetadata, options);
-    }
-
     exec(options: Options | undefined): Promise<any> {
         var opt = Object.assign({}, this._options, options) as Options;
         var url = this.url(true,opt);
@@ -317,9 +304,8 @@ export class Query {
     }
 }
 
-type FilterExpr = { func: Function, params?: object };
 type ExpandExpr = { expand: string, expr?: Function }
-type QueryParams = { filter?: (string | FilterExpr)[]; top?: number; skip?: number; orderBy?: string[]; expand?: ExpandExpr[]; select?: string[]; count?: boolean; search?: string[] };
+type QueryParams = { [x: string]: any; filter?: string[]; top?: number; skip?: number; orderBy?: string[]; expand?: ExpandExpr[]; select?: string[]; count?: boolean; search?: string[] };
 type ODataMethods = "get" | "post" | "put" | "patch" | "delete";
 
 abstract class Segment {

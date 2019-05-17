@@ -2,11 +2,11 @@
 
 import { fetchUrlInterceptor } from "./infrastucture";
 import { metadata, Context } from "./models";
-import { ApiContextFactory } from "../src/index";
+import Pailingual from "../src/index";
 
 
 var requestInfo: { url?: string, method?: string, payload?: any } = {};
-const context = ApiContextFactory<Context>(
+const context = Pailingual.createApiContext<Context>(
     metadata,
     {
         fetch: fetchUrlInterceptor(ri => requestInfo = ri )
@@ -147,7 +147,7 @@ describe('Patch 1', function () {
 });
 
 describe("Response", function () {
-    const context = ApiContextFactory<Context>(metadata);
+    const context = Pailingual.createApiContext<Context>(metadata);
     function getFetchMock(httpCode: number, body?: string)
     {
         return function (r: RequestInfo, init?: RequestInit) {

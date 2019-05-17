@@ -34,6 +34,7 @@
     <Content Include="run_tests.html">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="tests\extendTests.ts" />
     <Content Include="tsconfig.esm.json">
       <SubType>Code</SubType>
     </Content>
@@ -42,11 +43,7 @@
     <TypeScriptCompile Include="src\options.ts" />
     <TypeScriptCompile Include="src\polyfills.ts" />
     <TypeScriptCompile Include="src\singleSource.ts" />
-    <TypeScriptCompile Include="src\oDataFunctions.ts">
-      <SubType>Code</SubType>
-    </TypeScriptCompile>
     <TypeScriptCompile Include="src\collectionSource.ts" />
-    <TypeScriptCompile Include="src\filterExpressionBuilder.ts" />
     <TypeScriptCompile Include="src\metadata.ts" />
     <TypeScriptCompile Include="src\query.ts" />
     <TypeScriptCompile Include="src\executable.ts">
@@ -60,10 +57,6 @@
     </TypeScriptCompile>
     <TypeScriptCompile Include="src\index.ts">
       <SubType>Code</SubType>
-    </TypeScriptCompile>
-    <TypeScriptCompile Include="tests\filterExpressionTests.ts">
-      <SubType>Code</SubType>
-      <TestFramework>Mocha</TestFramework>
     </TypeScriptCompile>
     <TypeScriptCompile Include="tests\infrastucture.ts">
       <SubType>Code</SubType>

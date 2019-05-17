@@ -1,12 +1,12 @@
 ﻿import { assert } from "chai";
 
-import { ApiContextFactory } from "../src/index";
+import { Pailingual } from "../src/index";
 import { Context, metadata, ParentEx } from "./models";
 import { fetchUrlInterceptor } from "./infrastucture";
 import { ApiMetadata, Namespace, OperationMetadata } from '../src/metadata';
 
 var requestInfo: { url?: string, method?: string, payload?: any } = {};
-const context = ApiContextFactory<Context>(
+const context = Pailingual.createApiContext<Context>(
     metadata,
     {
         fetch: fetchUrlInterceptor(ri => requestInfo = ri)
@@ -255,7 +255,7 @@ describe("Operations", () => {
         ns.addOperations(new OperationMetadata("unboundFuncPrimitive", false));
         const brokenMetadata = new ApiMetadata("/api","", { "Default": ns });
 
-        const query = ApiContextFactory<Context>(brokenMetadata).unboundFuncPrimitive("arg");
+        const query = Pailingual.createApiContext<Context>(brokenMetadata).unboundFuncPrimitive("arg");
 
         assert.throws(()=>query.$url(), Error, /^Parameter '0', for function 'unboundFuncPrimitive', not defined in metadata$/);
     });

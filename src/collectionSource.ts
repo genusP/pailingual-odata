@@ -7,8 +7,8 @@ import * as helpers from "./utils";
 
 export class CollectionSource extends ExecutableAndCount {
     constructor(
-        private __metadata: EdmEntityType,
-        private __apiMetadata: ApiMetadata,
+        protected __metadata: EdmEntityType,
+        protected __apiMetadata: ApiMetadata,
         query: Query
     ) {
         super(query);
@@ -84,8 +84,8 @@ export class CollectionSource extends ExecutableAndCount {
         return new CollectionSource(this.__metadata, this.__apiMetadata, q);
     }
 
-    $filter(expr: string | Function, params?: object) {
-        const q = this.query.filter(expr, params);
+    $filter(expr: string) {
+        const q = this.query.filter(expr);
         return new CollectionSource(this.__metadata, this.__apiMetadata, q);
     }
 

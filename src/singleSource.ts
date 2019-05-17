@@ -6,7 +6,7 @@ import * as helpers from "./utils";
 
 export class SingleSource extends Executable {
 
-    constructor(private __metadata: EdmEntityType, private __apiMetadata: ApiMetadata, query: Query)
+    constructor(protected __metadata: EdmEntityType, protected __apiMetadata: ApiMetadata, query: Query)
     {
         super(query);
         this.generatePropertyImplementation();
