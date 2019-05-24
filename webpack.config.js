@@ -6,7 +6,7 @@ module.exports = (env, argv) => {
         context: path.join(__dirname, "/src"),
         devtool: false,
         output: {
-            path: __dirname + "/dist",
+            path: __dirname + "/dist/browser",
             filename: "pailingual.js",
             libraryTarget: "umd",
             library: "pailingual-odata"

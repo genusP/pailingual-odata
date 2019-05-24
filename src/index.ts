@@ -1,12 +1,15 @@
-﻿import { ApiMetadata, loadMetadata } from "./metadata";
+﻿import * as metadata from "./metadata";
 import { ApiContextImpl } from "./apiContext";
 import { Options, ExtendOptions } from "./options";
 import { _extends } from "./utils";
 import { CollectionSource } from "./collectionSource";
 import { SingleSource } from "./singleSource";
 import { Query } from "./query";
+import * as serialization from "./serialization";
 
 export { loadMetadata } from "./metadata";
+
+export { metadata, serialization, Options, ExtendOptions, CollectionSource, SingleSource, Query };
 
 
 export class Pailingual {
@@ -24,20 +27,20 @@ export class Pailingual {
     /*
      * Factories 
      */
-    static createApiContext<T extends IApiContextBase>(metadata: ApiMetadata, options?: Options): ApiContext<T>;
+    static createApiContext<T extends IApiContextBase>(metadata: metadata.ApiMetadata, options?: Options): ApiContext<T>;
     static createApiContext<T extends IApiContextBase>(apiRoot: string, options?: Options): Promise<ApiContext<T>>;
-    static createApiContext<T extends IApiContextBase>(api: ApiMetadata | string, options?: Options): Promise<ApiContext<T>> | ApiContext<T> {
+    static createApiContext<T extends IApiContextBase>(api: metadata.ApiMetadata | string, options?: Options): Promise<ApiContext<T>> | ApiContext<T> {
         if (typeof api == "string") {
-            return loadMetadata(api)
+            return metadata.loadMetadata(api)
                 .then(m => new ApiContextImpl(m, options) as any as ApiContext<T>);
         }
-        else if (api instanceof ApiMetadata)
+        else if (api instanceof metadata.ApiMetadata)
             return new ApiContextImpl(api, options) as any as ApiContext<T>;
         throw new Error("First parameter must be api url or metadata object");
     }
 
     static loadMetadata(apiRoot: string, options?: Options, cache?: boolean) {
-        return loadMetadata(apiRoot, options, cache);
+        return metadata.loadMetadata(apiRoot, options, cache);
     }
 }
 

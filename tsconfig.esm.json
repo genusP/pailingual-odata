@@ -2,7 +2,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "sourceMap": false,
-    "module": "es2015"
+    "module": "es2015",
+    "target": "es5"
   },
   "include": [ "src/index.ts", "src/polyfills.ts" ]
 }

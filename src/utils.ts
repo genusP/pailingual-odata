@@ -78,7 +78,7 @@ export function _extends(ctor: Function, funcs?: Record<string, Function>) {
             let base = ctor.prototype[name];
             let func = funcs[name];
             ctor.prototype[name] = function () {
-                return func.apply(this, [base && base.bind(this)].concat(arguments) );
+                return func.apply(this, [base && base.bind(this)].concat(Array.from(arguments)));
             }
         }
     }
