@@ -161,7 +161,7 @@ function convertObj(obj: any, type: EdmTypes | EdmEntityType | EdmEnumType, apiM
             return obj.map(v => convertObj(v, type, apiMetadata, options))
         if (obj[ODATA_TYPE]) {
             const typeName = (obj[ODATA_TYPE] as string).substr(1);
-            type = ApiMetadata.getEdmTypeMetadata(typeName, apiMetadata.namespaces);
+            type = apiMetadata.getEdmTypeMetadata(typeName);
             if (type == null)
                 throw new Error(`Metadata for type '${typeName}' not found.`);
         }

@@ -148,7 +148,7 @@ export class ApiMetadata {
         const parser = new DOMParser();
         const metadataDoc = parser.parseFromString(metadataXml, "text/xml");
 
-        const namespaces = ApiMetadata.getEntityTypes(metadataDoc);
+        const namespaces = ApiMetadata.parseEntityTypes(metadataDoc);
         const entitySets: Record<string, EdmEntityType> = {};
         const singletons: Record<string, EdmEntityType> = {};
         const container = metadataDoc.querySelector("Schema>EntityContainer")!;
@@ -167,7 +167,7 @@ export class ApiMetadata {
         const list3 = metadataDoc.querySelectorAll("Schema>Function,Schema>Action");
         for (var i = 0; i < list3.length; i++){
             const e = list3.item(i);
-            const metadata = ApiMetadata.getOperationMetadata(e, namespaces);
+            const metadata = ApiMetadata.parseOperationMetadata(e, namespaces);
             const namespaceName = getRequiredAttributeValue(e.parentElement as Element, "Namespace");
             if (!namespaces[namespaceName])
                 namespaces[namespaceName] = new Namespace(namespaceName);
@@ -186,7 +186,7 @@ export class ApiMetadata {
         return this.loadFromXml(apiRoot, await response.text());
     }
 
-    static getEntityTypes(metadataDoc: Document) {
+    private static parseEntityTypes(metadataDoc: Document) {
         let namespaces = {} as Namespaces;
 
         let entityTypes: Array<{ element: Element, typeMetadata: EdmEntityType }> = [];
@@ -214,7 +214,7 @@ export class ApiMetadata {
             if (!(ns in namespaces))
                 namespaces[ns] = new Namespace(ns);
             if (e.tagName.toLowerCase() === "enumtype") {
-                const enumType = new EdmEnumType(name, ApiMetadata.getEnumMembers(e));
+                const enumType = new EdmEnumType(name, ApiMetadata.parseEnumMembers(e));
                 namespaces[ns].addTypes(enumType);
             }
             else {
@@ -233,13 +233,13 @@ export class ApiMetadata {
 
         for (let e of entityTypes) {
             Object.assign(e.typeMetadata, ApiMetadata.getEntityTypeProperties(e.element, namespaces));
-            e.typeMetadata.keys = this.getEntityKeys(e.element);
+            e.typeMetadata.keys = this.parseEntityKeys(e.element);
         }
 
         return namespaces;
     }
 
-    static getEntityKeys(typeElement: Element) {
+    private static parseEntityKeys(typeElement: Element) {
         var res = new Array<string>();
         var list = typeElement.querySelectorAll("Key>PropertyRef");
         for (var i = 0; i < list.length; i++) {
@@ -248,7 +248,7 @@ export class ApiMetadata {
         return res;
     }
 
-    static getEnumMembers(element: Element): Record<string, string | number> {
+    private static parseEnumMembers(element: Element): Record<string, string | number> {
         const res: Record<string, string | number> = {};
         var list = element.querySelectorAll("Member");
         for (var i = 0; i < list.length; i++) {
@@ -260,14 +260,14 @@ export class ApiMetadata {
         return res;
     }
 
-    static getEntityTypeProperties(typeElement: Element, namespaces: Namespaces) {
+    private static getEntityTypeProperties(typeElement: Element, namespaces: Namespaces) {
         let properties: Record<string, EdmTypeReference> = {};
         let navProperties: Record<string, EdmEntityTypeReference> = {};
         var list = typeElement.querySelectorAll("Property,NavigationProperty")
         for (var i = 0; i < list.length; i++) {
             const e = list.item(i);
             const name = getRequiredAttributeValue(e,"Name");
-            let metadata = ApiMetadata.getType(e, namespaces);
+            let metadata = ApiMetadata.parseType(e, namespaces);
             if(e.tagName.toLowerCase() == "property")
                 properties[name] = metadata;
             else
@@ -276,14 +276,22 @@ export class ApiMetadata {
         return { properties, navProperties };
     }
 
-    static getEntitySetMetadata(typeName: string, namespaces: Namespaces) {
+    getEntitySetMetadata(typeName: string) {
+        return ApiMetadata.getEntitySetMetadata(typeName, this.namespaces);
+    }
+
+    private static getEntitySetMetadata(typeName: string, namespaces: Namespaces) {
         const res = ApiMetadata.getEdmTypeMetadata(typeName, namespaces);
         if (res instanceof EdmEntityType)
             return res;
         throw new Error("EntitySet item type must be entity");
     }
 
-    static getEdmTypeMetadata(typeName: string, namespaces: Namespaces): EdmEntityType | EdmEnumType {
+    getEdmTypeMetadata(typeName: string): EdmEntityType | EdmEnumType {
+        return ApiMetadata.getEdmTypeMetadata(typeName, this.namespaces);
+    }
+
+    private static getEdmTypeMetadata(typeName: string, namespaces: Namespaces): EdmEntityType | EdmEnumType {
         if (startsWith(typeName,COLLECTION_TYPE_PREFIX))
             typeName = typeName.substring(COLLECTION_TYPE_PREFIX.length, typeName.length - 1)
 
@@ -301,19 +309,19 @@ export class ApiMetadata {
         return typeElement;
     }
 
-    static getOperationMetadata(operationElement: Element, namespaces: Namespaces): OperationMetadata {
+    private static parseOperationMetadata(operationElement: Element, namespaces: Namespaces): OperationMetadata {
         const isAction = operationElement.tagName.toLowerCase() === "action";
         const name = getRequiredAttributeValue(operationElement, "Name");
         const returnTypeElement = operationElement.querySelector("ReturnType");
         const returnType = returnTypeElement
-            ? ApiMetadata.getType(returnTypeElement, namespaces)
+            ? ApiMetadata.parseType(returnTypeElement, namespaces)
             : undefined;
         const parameters = new Array<{ name: string, type: EdmTypeReference }>();
         let bindingTo: EdmEntityTypeReference | undefined;
         const list = operationElement.querySelectorAll("Parameter");
         for (var i = 0; i < list.length; i++){
             const e = list.item(i);
-            const type = ApiMetadata.getType(e, namespaces);
+            const type = ApiMetadata.parseType(e, namespaces);
             const name = getRequiredAttributeValue(e, "Name");
             if (getAttributeBoolValue(operationElement, "IsBound") && !bindingTo)
                 bindingTo = EdmEntityTypeReference.fromTypeReference(type);
@@ -323,7 +331,7 @@ export class ApiMetadata {
         return new OperationMetadata(name, isAction, parameters, returnType, bindingTo);
     }
 
-    static getType(element: Element, namespaces: Namespaces) {
+    private static parseType(element: Element, namespaces: Namespaces) {
         let typeName = getRequiredAttributeValue(element, "Type");
         let collection = startsWith(typeName, COLLECTION_TYPE_PREFIX);
         if (collection)

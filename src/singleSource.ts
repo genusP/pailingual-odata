@@ -41,7 +41,7 @@ export class SingleSource extends Executable {
     }
 
     $cast(fullTypeName: string) {
-        const metadata = ApiMetadata.getEdmTypeMetadata(fullTypeName, this.__apiMetadata.namespaces) as EdmEntityType;
+        const metadata = this.__apiMetadata.getEdmTypeMetadata(fullTypeName) as EdmEntityType;
         if (!metadata)
             throw new Error(`EntitType '${fullTypeName}' not found.`);
         const q = this.query.cast(fullTypeName);

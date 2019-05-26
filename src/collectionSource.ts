@@ -63,7 +63,7 @@ export class CollectionSource extends ExecutableAndCount {
     }
 
     $cast(fullTypeName: string): CollectionSource {
-        const typeMetadata = ApiMetadata.getEdmTypeMetadata(fullTypeName, this.__apiMetadata.namespaces) as EdmEntityType;
+        const typeMetadata = this.__apiMetadata.getEdmTypeMetadata(fullTypeName) as EdmEntityType;
         if (!typeMetadata)
             throw new Error(`EntityType '${fullTypeName}' not found.`);
         const q = this.query.cast(fullTypeName);
