@@ -217,12 +217,12 @@ export class Query {
 
     buildParams(options: Options, separator = "&") {
         return Object.getOwnPropertyNames(this.params)
-            .map(n => this.params[n] && this.processParametr(n, this.params[n], options))
+            .map(n => this.params[n] && this.processParameter(n, this.params[n], options))
             .filter(v => v)
             .join(separator);
     }
 
-    processParametr(name: string, value: any, options: Options): string | undefined {
+    processParameter(name: string, value: any, options: Options): string | undefined {
         switch (name) {
             case "select":
                 return "$select=" + value.join(",");
