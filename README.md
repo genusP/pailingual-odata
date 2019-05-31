@@ -43,6 +43,9 @@ Types
   - Edm.Double
   - Edm.TimeOfDay
   - Edm.Decimal
+  
+## Plugins
+ [pailingual-odata-filter](https://www.npmjs.com/package/pailingual-odata-filter) - implements support filtering on arrow function based expression.
 
 ## How to define a model
 You can use [pailingual-odata-model-generatior](https://www.npmjs.com/package/pailingual-odata-model-generator) for generate model from service metadata.
