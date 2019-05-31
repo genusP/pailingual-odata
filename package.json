@@ -1,6 +1,6 @@
 {
   "name": "pailingual-odata",
-  "version": "1.1.0-beta.2",
+  "version": "1.1.0",
   "description": "TypeScript client for OData v4 services",
   "author": "Gennady Pundikov",
   "main": "./dist/cjs/index.js",
@@ -9,12 +9,13 @@
   "umd": "./distr/browser/pailingual.js",
   "scripts": {
     "test": "mocha ./tests",
-    "build": "npm run build:umd && npm run build:cjs && npm run build:umd:min && npm run build:esm",
+    "build:all": "npm run build:umd && npm run build:cjs && npm run build:umd:min && npm run build:esm",
     "build:umd": "webpack --mode=development",
     "build:cjs": "tsc --project ./tsconfig.esm.json --outDir ./dist/cjs --rootDir ./src --module commonjs",
     "build:umd:min": "webpack --mode=production --output-filename pailingual.min.js",
     "build:esm": "tsc --project ./tsconfig.esm.json --outDir ./dist/esm --rootDir ./src",
-    "tsc": "tsc"
+    "build": "tsc --build",
+    "clean": "tsc --clean"
   },
   "repository": {
     "type": "git",
