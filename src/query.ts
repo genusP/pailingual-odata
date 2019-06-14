@@ -1,7 +1,7 @@
-import { EdmEntityType, OperationMetadata, EdmTypes, ApiMetadata, EdmTypeReference } from "./metadata";
 import { getFormatter, serializeValue } from "./serialization";
 import { Options } from "./options";
 import { expandExpressionBuild, startsWith } from "./utils";
+import * as csdl from "./csdl";
 
 export class Query {
     protected _segments: Segment[] = [];
@@ -10,12 +10,12 @@ export class Query {
     protected _payload: any;
 
     private constructor(
-        protected readonly _apiMetadata: ApiMetadata,
-        protected _entityMetadata: EdmEntityType,
+        protected readonly _apiMetadata: csdl.MetadataDocument,
+        protected _entityMetadata: csdl.EntityType,
         protected readonly _options?: Options
     ) { }
 
-    static create(apiMetadata: ApiMetadata, entityMetadata: EdmEntityType, options: Options | undefined): Query {
+    static create(apiMetadata: csdl.MetadataDocument, entityMetadata: csdl.EntityType, options: Options | undefined): Query {
         return new Query(apiMetadata, entityMetadata, options)._freeze();
     }
 
@@ -57,33 +57,33 @@ export class Query {
     }
 
 
-    private _action(metadata: OperationMetadata, args: any[]): Query {
+    private _action(metadata: csdl.ActionOverload, args: any[]): Query {
         return this._clone(
             q => {
                 q._segments.push(new ActionSegment(metadata));
                 q._method = "post";
-                (q as any)._entityMetadata = metadata.returnType && metadata.returnType.type as EdmEntityType;
+                //(q as any)._entityMetadata = metadata.$ReturnType && csdl.getType(metadata.$ReturnType.$Type, metadata);
                 if (args && args.length>0) {
                     let payload: Record<string, any> = {};
-                    let edmProps: Record<string, EdmTypeReference> = {}
-                    if (metadata.parameters) {
+                    let edmProps: any = { $Kind: "EntityType" };
+                    if (metadata.$Parameter) {
                         for (let i = 0; i < args.length; i++ ) {
-                            const param = metadata.parameters[i];
-                            payload[param.name] = args[i];
-                            edmProps[param.name] = param.type;
+                            const param = metadata.$Parameter[i];
+                            payload[param.$Name] = args[i];
+                            edmProps[param.$Name] = csdl.getType(param.$Type, metadata);
                         }
                     }
-                    q._entityMetadata = new EdmEntityType("", edmProps);
+                    q._entityMetadata = edmProps;
                     q._payload = payload;
                 }
             }
         );
     }
 
-    private _func(metadata: OperationMetadata, args: any[]): Query {
+    private _func(metadata: csdl.FunctionOverload, args: any[]): Query {
         return this._clone(
             q => {
-                (q as any)._entityMetadata = metadata.returnType && metadata.returnType.type as EdmEntityType;
+                (q as any)._entityMetadata = metadata.$ReturnType && csdl.getType(metadata.$ReturnType.$Type, metadata);
                 q._segments.push(new FuncSegment(metadata, args))
             }
         );
@@ -104,7 +104,7 @@ export class Query {
         );
     }
 
-    navigate(property: string, entityMetadata: EdmEntityType): Query {
+    navigate(property: string, entityMetadata: csdl.EntityType): Query {
         return this._clone(
             q => {
                 q._entityMetadata = entityMetadata;
@@ -113,8 +113,8 @@ export class Query {
         );
     }
 
-    operation(metadata: OperationMetadata, args: any[]): Query {
-        return metadata.isAction
+    operation(metadata: csdl.ActionOverload | csdl.FunctionOverload, args: any[]): Query {
+        return csdl.isActionOverload(metadata)
             ? this._action(metadata, args)
             : this._func(metadata, args);
     }
@@ -201,7 +201,7 @@ export class Query {
     }
 
     url(queryParams = true, options?: Options) {
-        const apiRoot = (this._apiMetadata && this._apiMetadata.apiRoot) || "";
+        const apiRoot = (this._apiMetadata && this._apiMetadata.$ApiRoot) || "";
         const params = queryParams ? this.params : undefined;
         const opt = Object.assign({}, this._options, options);
         let url = apiRoot + this._segments
@@ -329,39 +329,42 @@ class KeySegment extends Segment {
 }
 
 class ActionSegment extends Segment {
-    constructor(private readonly _metadata: OperationMetadata) { super(); }
+    constructor(private readonly _metadata: csdl.ActionOverload) { super(); }
 
     toUrlFragment(options: Options): string {
-        const actionName =
-            this._metadata.bindingTo
-                && options.enableUnqualifiedNameCall != true
-            ? this._metadata.getFullName()
-            : this._metadata.name;
+        const actionName = csdl.getName(
+            (this._metadata as any).$$parent,
+            this._metadata.$IsBound && options.enableUnqualifiedNameCall != true
+                ? "full"
+                : undefined
+        );
         return "/" + actionName;
     }
 }
 
 class FuncSegment extends Segment {
-    constructor(private __metadata: OperationMetadata, private __args: any[]) {
+    constructor(private __metadata: csdl.FunctionOverload, private __args: any[]) {
         super();
     }
     toUrlFragment(options: Options): string {
-        const actionName =
-            this.__metadata.bindingTo
-                && options.enableUnqualifiedNameCall != true
-            ? this.__metadata.getFullName()
-            : this.__metadata.name;
+        const functionName = csdl.getName(
+            (this.__metadata as any).$$parent,
+            this.__metadata.$IsBound && options.enableUnqualifiedNameCall != true
+                ? "full"
+                : undefined
+        );
         const serializedArgs = this.__args.map((a, i) => {
-            if (this.__metadata.parameters) {
-                const paramMetadata = this.__metadata.parameters[i];
-                if (paramMetadata != null) {
-                    const v = serializeValue(a, paramMetadata.type.type as EdmTypes, true);
-                    return [paramMetadata.name, v].join("=");
+            if (this.__metadata.$Parameter) {
+                const param = this.__metadata.$Parameter[i];
+                const paramType = csdl.getType(param.$Type, this.__metadata);
+                if (csdl.isPrimitiveType( paramType) ) {
+                    const v = serializeValue(a, paramType, true);
+                    return [param.$Name, v].join("=");
                 }
             }
-            throw new Error(`Parameter '${i}', for function '${actionName}', not defined in metadata`)
+            throw new Error(`Parameter '${i}', for function '${functionName}', not defined in metadata`)
         })
-        return `/${actionName}(${serializedArgs.join(",")})`;
+        return `/${functionName}(${serializedArgs.join(",")})`;
     }
 }
 

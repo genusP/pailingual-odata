@@ -2,13 +2,15 @@
 
 import { getFormatter } from '../src/serialization';
 import { Parent, metadata, Child, ComplexType, TestEnum, OpenType, TestEntity } from './models';
-import { EdmEntityType } from '../src/metadata';
 import { Entity } from '../src';
+import { getType, EntityType } from "../src/csdl";
 
 describe("", () => {
     const formatter = getFormatter("application/json");
     const jsonSerialize = formatter.serialize,
         jsonDeserialize = formatter.deserialize;
+    const parentEntityType = 
+        getType("Default.Parent", metadata) as EntityType;
     it("Serialize", () => {
         const dateTime = new Date(2019, 1, 16, 10, 29);
         var payload: Partial<Parent> = {
@@ -19,8 +21,7 @@ describe("", () => {
                 field: "test",
             } as ComplexType
         };
-        const entityMD = metadata.namespaces["Default"].types["Parent"] as EdmEntityType;
-        const result = jsonSerialize(payload, entityMD, {});
+        const result = jsonSerialize(payload, parentEntityType, {});
 
         assert.equal(
             result,
@@ -40,8 +41,7 @@ describe("", () => {
                 testEntityField: "testStr"
             } as any as TestEntity]
         };
-        const entityMD = metadata.namespaces["Default"].types["Parent"] as EdmEntityType;
-        const result = jsonSerialize(payload, entityMD, {});
+        const result = jsonSerialize(payload, parentEntityType, {});
 
         assert.equal(
             result,
@@ -51,8 +51,8 @@ describe("", () => {
 
     it("Serialize enum", () => {
         var payload: Partial<Parent> = { id: 1, enumField: TestEnum.Type1 };
-        const entityMD = metadata.namespaces["Default"].types["Parent"] as EdmEntityType;
-        const result = jsonSerialize(payload, entityMD, {});
+
+        const result = jsonSerialize(payload, parentEntityType, {});
 
         assert.equal(
             result,
@@ -72,9 +72,8 @@ describe("", () => {
             numberField: null,
             strField: null
         };
-        const entityMD = metadata.namespaces["Default"].types["Parent"] as EdmEntityType;
 
-        const actual = jsonSerialize(data, entityMD, {});
+        const actual = jsonSerialize(data, parentEntityType, {});
         const expected = JSON.stringify(data);
 
         assert.equal(actual, expected);
@@ -86,7 +85,7 @@ describe("", () => {
             prop2: "klio",
             prop4: false
         }
-        const entityMD = metadata.namespaces["Default"].types["OpenType"] as EdmEntityType;
+        const entityMD = getType("Default.OpenType", metadata) as EntityType;
 
         const actual = jsonSerialize(data, entityMD, {});
         const expected = JSON.stringify(data);
@@ -99,7 +98,7 @@ describe("", () => {
             prop1: 10,
             prop3: [{ field:"klio" }]
         }
-        const entityMD = metadata.namespaces["Default"].types["OpenType"] as EdmEntityType;
+        const entityMD = getType("Default.OpenType", metadata) as EntityType;
 
         const actual = jsonSerialize(data, entityMD, {});
         const expected = JSON.stringify(data);

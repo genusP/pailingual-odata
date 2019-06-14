@@ -1,14 +1,14 @@
 import { Query} from "./query";
-import { EdmEntityType, EdmTypes, ApiMetadata } from "./metadata";
 import { SingleSource } from "./singleSource";
 import { serializeValue } from "./serialization"
 import { Executable, ExecutableAndCount } from "./executable";
 import * as helpers from "./utils";
+import * as csdl from "./csdl";
 
 export class CollectionSource extends ExecutableAndCount {
     constructor(
-        protected __metadata: EdmEntityType,
-        protected __apiMetadata: ApiMetadata,
+        protected __metadata: csdl.EntityType,
+        protected __apiMetadata: csdl.MetadataDocument,
         query: Query
     ) {
         super(query);
@@ -17,7 +17,11 @@ export class CollectionSource extends ExecutableAndCount {
 
     private _generateOperationsProperties() {
         if (this.__apiMetadata) {
-            helpers.generateOperations(this, () => this.query, this.__apiMetadata, this.__metadata, true);
+            for (const oper of csdl.getOperations(this.__apiMetadata)) {
+                const overload = csdl.getBoundOperation(oper.metadata, this.__metadata, true)
+                if (overload)
+                    helpers.defineOperationProperty(this, oper.name, overload, this.__apiMetadata, this.query);
+            }
         }
     }
 
@@ -31,31 +35,43 @@ export class CollectionSource extends ExecutableAndCount {
 
     private getExpressionByKeyValue(value: any): string {
         let md = this.__metadata;
-        let keys = this.__metadata.keys;
-        while (md.baseType && !keys)
+        let keys = this.__metadata.$Key;
+        while (md.$BaseType && !keys)
         {
-            md = md.baseType;
-            keys = md.keys;
+            md = csdl.getItemByName<csdl.EntityType>(md.$BaseType, md)!;
+            keys = md.$Key;
         }
         if (!keys)
             throw new Error(`Metadata: Keys not defined for entity type '${md.name}'`);
         if (keys.length > 1)
             throw new Error('For entity with composite key use named parameters');
-
-        let keyType = md.properties[keys[0]].type as EdmTypes;
+        const keyProperty = csdl.getProperty(keys[0], this.__metadata, false);
+        if (!keyProperty)
+            throw new Error(`Property ${keys[0]} not found`);
+        const keyType = this.getKeyPropertyType(keyProperty, keys[0])
         let res = serializeValue(value, keyType, true);
         if (!res)
             throw new Error("Key must be not null value");
         return res;
     }
 
+    private getKeyPropertyType(keyProperty: csdl.Property, path: any) {
+        let keyType = keyProperty.$Type
+            ? csdl.isPrimitiveType(keyProperty.$Type) ? keyProperty.$Type : undefined
+            : csdl.PrimitiveType.String;
+        if (!keyType)
+            throw new Error(`Key contains property not primitive type (${JSON.stringify(path)}: ${keyType})`);
+        return keyType;
+    }
+
     private getExpressionByValues(values: Record<string, any>): string {
         var res = new Array<string>();
         for (let prop in values) {
-            let propMetadata = this.__metadata.properties[prop];
+            const propMetadata = csdl.getProperty(prop, this.__metadata, false);
             if (!propMetadata)
                 throw new Error(`Property '${prop}' for entity '${this.__metadata.name}' not found.`);
-            let value = serializeValue(values[prop], propMetadata.type as EdmTypes, true);
+            const propertyType = this.getKeyPropertyType(propMetadata, prop);
+            let value = serializeValue(values[prop], propertyType, true);
             let exp = `${prop}=${value}`;
             res.push(exp);
         }
@@ -63,7 +79,7 @@ export class CollectionSource extends ExecutableAndCount {
     }
 
     $cast(fullTypeName: string): CollectionSource {
-        const typeMetadata = this.__apiMetadata.getEdmTypeMetadata(fullTypeName) as EdmEntityType;
+        const typeMetadata = csdl.getItemByName<csdl.EntityType>(fullTypeName, this.__apiMetadata);
         if (!typeMetadata)
             throw new Error(`EntityType '${fullTypeName}' not found.`);
         const q = this.query.cast(fullTypeName);

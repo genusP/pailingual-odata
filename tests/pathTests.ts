@@ -3,7 +3,6 @@
 import { Pailingual } from "../src/index";
 import { Context, metadata, ParentEx } from "./models";
 import { fetchUrlInterceptor } from "./infrastucture";
-import { ApiMetadata, Namespace, OperationMetadata } from '../src/metadata';
 
 var requestInfo: { url?: string, method?: string, payload?: any } = {};
 const context = Pailingual.createApiContext<Context>(
@@ -251,9 +250,23 @@ describe("Operations", () => {
     });
 
     it("throw error if parameter not exists in metadata", () => {
-        const ns = new Namespace("Default");
-        ns.addOperations(new OperationMetadata("unboundFuncPrimitive", false));
-        const brokenMetadata = new ApiMetadata("/api","", { "Default": ns });
+        const brokenMetadata: any = {
+            $ApiRoot: "/api",
+            $Version: "4.0",
+            $EntityContainer: "Default.Container",
+            "Default": {
+                "unboundFuncPrimitive": [{
+                    $Kind: "Function",
+                    $ReturnType: {}
+                }],
+                "Container": {
+                    "unboundFuncPrimitive": {
+                        $Kind: "FunctionImport",
+                        $Function:"Default.unboundFuncPrimitive"
+                    }
+                }
+            }
+        }//new ApiMetadata("/api", "", { "Default": ns });
 
         const query = Pailingual.createApiContext<Context>(brokenMetadata).unboundFuncPrimitive("arg");
 

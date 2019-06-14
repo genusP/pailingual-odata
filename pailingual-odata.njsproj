@@ -29,12 +29,14 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
     <Content Include=".gitignore" />
+    <Content Include="tests\metadata.json" />
     <Content Include="package-lock.json" />
     <Content Include="package.json" />
     <Content Include="run_tests.html">
       <SubType>Code</SubType>
     </Content>
     <Content Include="tests\extendTests.ts" />
+    <Content Include="src\csdl.ts" />
     <Content Include="tsconfig.esm.json">
       <SubType>Code</SubType>
     </Content>
@@ -44,7 +46,6 @@
     <TypeScriptCompile Include="src\polyfills.ts" />
     <TypeScriptCompile Include="src\singleSource.ts" />
     <TypeScriptCompile Include="src\collectionSource.ts" />
-    <TypeScriptCompile Include="src\metadata.ts" />
     <TypeScriptCompile Include="src\query.ts" />
     <TypeScriptCompile Include="src\executable.ts">
       <SubType>Code</SubType>
@@ -58,12 +59,11 @@
     <TypeScriptCompile Include="src\index.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="tests\csdlTests.ts">
+      <TestFramework>Mocha</TestFramework>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="tests\infrastucture.ts">
       <SubType>Code</SubType>
-    </TypeScriptCompile>
-    <TypeScriptCompile Include="tests\metadataTests.ts">
-      <SubType>Code</SubType>
-      <TestFramework>Mocha</TestFramework>
     </TypeScriptCompile>
     <TypeScriptCompile Include="tests\models.ts">
       <SubType>Code</SubType>

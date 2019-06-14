@@ -1,49 +1,61 @@
 import { Query } from "./query";
 import { CollectionSource } from "./collectionSource";
-import { ApiMetadata } from "./metadata";
+import * as csdl from "./csdl";
 import { SingleSource } from "./singleSource";
-import { generateOperations } from "./utils";
+import { defineOperationProperty } from "./utils";
 import { Options } from "./options";
 
 
-export class ApiContextImpl{
+export class ApiContextImpl {
     constructor(
-        protected readonly __metadata: ApiMetadata,
-        protected readonly __options?: Options)
-    {
+        protected readonly __metadata: csdl.MetadataDocument,
+        protected readonly __options?: Options) {
+        csdl.setParents(__metadata);
         this.generate();
     }
 
     generate() {
         const apiMetaData = this.__metadata;
-        const opt = this.__options;
-        for (let p in apiMetaData.entitySets) {
-            const esMetadata = apiMetaData.entitySets[p];
-            Object.defineProperty(this, p, {
-                get() {
-                    let query = Query.create(apiMetaData, esMetadata, opt);
-                    query = query.navigate(p, esMetadata);
-                    return new CollectionSource(esMetadata, apiMetaData, query);
-                }
-            });
+        const container = csdl.getEntityContainer(apiMetaData)!
+        const query = Query.create(this.__metadata, null as any, this.__options);
+        for (let p of csdl.getChildNames(container)) {
+            const itemMetadata = container[p];
+            if (csdl.isEntitySet(itemMetadata)) {
+                const itemType = csdl.getItemByName<csdl.EntityType>(itemMetadata.$Type, container);
+                if (!itemType)
+                    throw new Error(`Entity type ${itemMetadata.$Type} not found`);
+                Object.defineProperty(this, p, {
+                    get() {
+                        return new CollectionSource(
+                            itemType,
+                            apiMetaData,
+                            query.navigate(p, itemType));
+                    }
+                });
+            }
+            else if (csdl.isSingleton(itemMetadata)) {
+                const itemType = csdl.getItemByName<csdl.EntityType>(itemMetadata.$Type, container);
+                if (!itemType)
+                    throw new Error(`Entity type ${itemMetadata.$Type} not found`);
+                Object.defineProperty(this, p, {
+                    get() {
+                        return new SingleSource(
+                            itemType,
+                            apiMetaData,
+                            query.navigate(p, itemType));
+                    }
+                })
+            }
+            else if (csdl.isActionImport(itemMetadata) || csdl.isFunctionImport(itemMetadata)) {
+                const operation = csdl.isActionImport(itemMetadata) ? itemMetadata.$Action : itemMetadata.$Function;
+                const itemType = csdl.getItemByName<(csdl.ActionOverload | csdl.FunctionOverload)[]>(operation, container);
+                if (!itemType)
+                    throw new Error(`Operation ${operation} not found`);
+                const operationOverload = itemType.find(o => o.$IsBound != true);
+                if (!operationOverload)
+                    throw new Error(`Unbound overload for operation ${operation} not found`);
+                defineOperationProperty(this, p, operationOverload, this.__metadata, query);
+            }
         }
-
-        for (let p in apiMetaData.singletons) {
-            const sMetadata = apiMetaData.singletons[p];
-            Object.defineProperty(this, p, {
-                get() {
-                    let query = Query.create(apiMetaData, sMetadata, opt)
-                        .navigate(p, sMetadata);
-                    return new SingleSource(sMetadata, apiMetaData, query);
-                }
-            })
-        }
-
-        generateOperations(
-            this,
-            () => Query.create(apiMetaData, null as any, opt),
-            apiMetaData,
-            undefined
-        )
     }
 }

@@ -14,11 +14,11 @@ const context = Pailingual.createApiContext<Context>(
 
 describe('Insert', function () {
     it('entity', function () {
-        return context.Parents.$insert({ id: 1, strField: "", }).$exec()
+        return context.Parents.$insert({ id: 1, strField: "", childs: [{ id: "1", childField: "", parentId: 1}] }).$exec()
             .then(() => {
                 assert.equal(requestInfo.url, "/api/Parents");
                 assert.equal(requestInfo.method, "post");
-                assert.equal(requestInfo.payload, '{"id":1,"strField":""}');
+                assert.equal(requestInfo.payload, '{"id":1,"strField":"","childs":[{"id":"1","childField":"","parentId":1}]}');
             })
     });
 

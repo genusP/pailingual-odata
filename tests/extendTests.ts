@@ -7,7 +7,7 @@ function getFunctionName() {
     let matches = (new Error())
         .stack!
         .split("\n")[3]
-        .match(/at (\S+)(?: \[as (\S+)\])?\s(?:\(.*\)")?/)!
+        .match(/\[?a[ts] (\S+[^\]])\]?\s(?:\(.*\))$/)!
     return matches[matches.length - 1]
 }
 

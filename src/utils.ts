@@ -1,17 +1,20 @@
 ﻿import { Query } from "./query";
 import { CollectionSource } from "./collectionSource";
 import { SingleSource } from "./singleSource";
-import { EdmEntityType, ApiMetadata } from "./metadata";
 import { Executable } from "./executable";
 import { Options } from "./options";
+import * as csdl from "./csdl"
 
-export function expandExpressionBuild(propertyName: string, expression: Function, apiMetadata: ApiMetadata, entityType: EdmEntityType, options: Options): string {
-    let navPropMD = entityType.navProperties[propertyName];
-    if (navPropMD == null)
-        throw new Error("Expand support navigation properties only");
-    const propType = navPropMD.type as EdmEntityType;
+export function expandExpressionBuild(propertyName: string, expression: Function, apiMetadata: csdl.MetadataDocument, entityType: csdl.EntityType, options: Options): string
+{
+    const navigationProperty = csdl.getProperty(propertyName, entityType, true)
+    if (!navigationProperty)
+        throw new Error(`Navigation property ${propertyName} not found`);
+    const propType = csdl.getItemByName<csdl.EntityType>(navigationProperty.$Type, entityType);
+    if (!propType)
+        throw new Error(`Type ${navigationProperty.$Type} not found`)
     const q = Query.create(apiMetadata, propType, options);
-    let sourceFactory = () => navPropMD.collection
+    let sourceFactory = () => navigationProperty.$Collection
         ? new CollectionSource(propType, apiMetadata, q)
         : new SingleSource(propType, apiMetadata, q);
 
@@ -21,7 +24,7 @@ export function expandExpressionBuild(propertyName: string, expression: Function
     return propertyName
 }
 
-export function buildPathExpression(func: Function, metadata: EdmEntityType, apiMetadata: ApiMetadata) {
+export function buildPathExpression(func: Function, metadata: csdl.EntityType, apiMetadata: csdl.MetadataDocument) {
     var entity = new SingleSource(metadata, apiMetadata, Query.create(null as any, metadata, undefined));
     entity = func(entity);
     var path = entity.query.url(false);
@@ -36,28 +39,22 @@ export function buildQueryParamsExpression(func: Function, sourceFactory: () => 
     return entity.query.buildParams(options, separator);
 }
 
-export function generateOperations(obj: any, queryAccessor: () => Query, apiMetadata: ApiMetadata, entityType: EdmEntityType | undefined, isCollection = false) {
-    for (let ns in apiMetadata.namespaces) {
-        for (let metadata of apiMetadata.namespaces[ns].operations) {
-            if ((metadata.bindingTo == undefined && entityType == undefined) //unbounded
-                ||(
-                metadata.bindingTo
-                && (metadata.bindingTo.collection || false) == isCollection
-                && metadata.bindingTo.type == entityType)
-            ) {
-                Object.defineProperty(obj, metadata.name, {
-                    get: () => {
-                        return (...args: any[]) => {
-                            let query = queryAccessor().operation(metadata, args);
-                            if (metadata.returnType && metadata.returnType.collection)
-                                return new CollectionSource(metadata.returnType.type as EdmEntityType, apiMetadata, query);
-                            return new Executable(query);
-                        }
-                    }
-                });
+export function defineOperationProperty(obj: any, name: string, metadata: csdl.ActionOverload | csdl.FunctionOverload, apiMetadata: csdl.MetadataDocument, query: Query) {
+    Object.defineProperty(obj, name, {
+        get() {
+            return (...args: any[]) => {
+                const q = query.operation(metadata, args);
+                if (metadata.$ReturnType) {
+                    const retType:any = csdl.getType(metadata.$ReturnType.$Type, metadata);
+                    if (metadata.$ReturnType.$Collection === true)
+                        return new CollectionSource(retType, apiMetadata, q);
+                    return new SingleSource(retType!, apiMetadata, q);
+                }
+                else
+                    return new Executable(q);
             }
         }
-    }
+    });
 }
 
 export function startsWith(str: string, search: string, position: number = 0) {

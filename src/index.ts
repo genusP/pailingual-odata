@@ -1,4 +1,4 @@
-﻿import * as metadata from "./metadata";
+﻿import * as csdl from "./csdl";
 import { ApiContextImpl } from "./apiContext";
 import { Options, ExtendOptions } from "./options";
 import { _extends } from "./utils";
@@ -7,10 +7,7 @@ import { SingleSource } from "./singleSource";
 import { Query } from "./query";
 import * as serialization from "./serialization";
 
-export { loadMetadata } from "./metadata";
-
-export { metadata, serialization, Options, ExtendOptions, CollectionSource, SingleSource, Query };
-
+export { csdl, serialization, Options, ExtendOptions, CollectionSource, SingleSource, Query };
 
 export class Pailingual {
     static use(plugin: { register: () => ExtendOptions | void }) {
@@ -27,26 +24,12 @@ export class Pailingual {
     /*
      * Factories 
      */
-    static createApiContext<T extends IApiContextBase>(metadata: metadata.ApiMetadata, options?: Options): ApiContext<T>;
-    static createApiContext<T extends IApiContextBase>(apiRoot: string, options?: Options): Promise<ApiContext<T>>;
-    static createApiContext<T extends IApiContextBase>(api: metadata.ApiMetadata | string, options?: Options): Promise<ApiContext<T>> | ApiContext<T> {
-        if (typeof api == "string") {
-            return metadata.loadMetadata(api)
-                .then(m => new ApiContextImpl(m, options) as any as ApiContext<T>);
-        }
-        else if (api instanceof metadata.ApiMetadata)
-            return new ApiContextImpl(api, options) as any as ApiContext<T>;
-        throw new Error("First parameter must be api url or metadata object");
-    }
-
-    static loadMetadata(apiRoot: string, options?: Options, cache?: boolean) {
-        return metadata.loadMetadata(apiRoot, options, cache);
+    static createApiContext<T extends IApiContextBase>(metadata: csdl.MetadataDocument, options?: Options): ApiContext<T> {
+        return new ApiContextImpl(metadata, options) as any as ApiContext<T>;
     }
 }
 
 export default Pailingual;
-/** @deprecated Use Palingual.createApiContext function */
-export var ApiContextFactory = Pailingual.createApiContext;
 
 /*
  * Base interfaces
@@ -85,9 +68,7 @@ export interface IExecutableWithCount<T, R> extends IExecutable<T, R>{
     $urlWithCount(opt?: Options): string;
 }
 
-export type Entity<T> =
-    { [P in (PrimitiveProps<T> | ComplexProps<T>) & RequiredProps<T>]: T[P] extends IComplexBase ? Entity<T[P]> : T[P] } &
-    { [P in (PrimitiveProps<T> | ComplexProps<T>) & OptionalProps<T>]?: T[P] extends IComplexBase | undefined ? Entity<Exclude<T[P], undefined>> : T[P] };
+export type Entity<T> = Pick<{ [P in keyof T]: T[P] extends IComplexBase ? Entity<T[P]> : T[P] }, PrimitiveProps<T> | ComplexProps<T>>;
 
 /*
  *  ApiContext
@@ -130,9 +111,6 @@ export type NavigationSetProps<T> = T extends IEntityBase | IApiContextBase ? Ex
 export type NavigationProps<T> = NavigationEntityProps<T> | NavigationSetProps<T>;
 /** List of all entity properties names*/
 export type AllProps<T> = Exclude<keyof T, Markers>;
-
-type OptionalProps<T> = {[K in keyof T]-?: undefined extends T[K] ? K : never}[keyof T]
-type RequiredProps<T> = { [K in keyof T]-?: undefined extends T[K] ? never : K }[keyof T]
 
 type NavigationSource<T> = { [P in NavigationProps<T>]:
     T[P] extends EntityArray<infer E> | undefined ? EntitySet<E> :
@@ -222,21 +200,11 @@ export type OrderbySource<T> = {
     T[P] extends IEntityBase ? OrderbySource<T[P]> : Exclude<T[P], undefined>
 }
 
-export type InsertParameter<T> = { //optional props
-    [P in (PrimitiveProps<T> | ComplexProps<T>) & OptionalProps<T>]?:
-        undefined extends T[P] ?
-        T[P] extends IComplexBase | undefined ? InsertParameter<Exclude<T[P], undefined>> :
-        T[P] :
-        never
-    } & { //required props
-    [P in (PrimitiveProps<T> | ComplexProps<T>) & RequiredProps<T>]:
-        undefined extends T[P] ? never :
-        T[P] extends IComplexBase ? InsertParameter<T[P]> :
-        T[P]
-    } & { //navigation props
-        [P in NavigationProps<T>]?:
-        T[P] extends EntityArray<infer U> ? Array<InsertParameter<U>> :
-        T[P] extends IEntityBase | IComplexBase ? InsertParameter<T[P]> :
+export type InsertParameter<T> = Pick<{ [P in keyof T]: T[P] extends IComplexBase ? InsertParameter<T[P]> : T[P] }, PrimitiveProps<T> | ComplexProps<T>>
+    & { //navigation props
+    [P in NavigationProps<T>]?:
+        T[P] extends EntityArray<infer U> | undefined ? Array<InsertParameter<U>> :
+        T[P] extends IEntityBase | IComplexBase | undefined ? InsertParameter<T[P]> :
         never
     };
 
