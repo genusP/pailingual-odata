@@ -36,6 +36,7 @@ export default Pailingual;
  */
 export interface IEntityBase extends IActionsSupport, IFunctionsSupport {
     $$EntityBaseMarker: never;
+    $$Keys: string | undefined;
     $$EntitySetActions: {}
     $$EntitySetFunctions: {}
 }
@@ -78,12 +79,12 @@ export type ApiContext<T extends IApiContextBase> =
     Actions<T> &
     Functions<T>;
 
-export type EntitySet<T> =
+export type EntitySet<T extends IEntityBase> =
     IEntitySetSource<T> &
     EntitySetActions<T> &
     EntitySetFunctions<T> &
     {
-        $byKey(key: PrimitiveTypes | Pick<Partial<T>, PrimitiveProps<T>>): Singleton<T>;
+        $byKey(key: PrimitiveTypes | Pick<Partial<T>, KeyProps<T>>): Singleton<T>;
         $cast<T2 extends T>(fullTypeName: string): EntitySet<T2>;
         $insert(insert: InsertParameter<T>): IExecutable<T>;
         $delete(key: PrimitiveTypes | Partial<Pick<T, PrimitiveProps<T>>>): IExecutable<void, void>
@@ -91,7 +92,7 @@ export type EntitySet<T> =
         $patch(key: PrimitiveTypes | Partial<Pick<T, PrimitiveProps<T>>>, obj: PatchParameter<T>): IExecutable<void, void>;
     };
 
-export type Singleton<T> = { $cast<T2 extends T>(fullTypeName: string): EntitySet<T2>; } &
+export type Singleton<T extends IEntityBase> = { $cast<T2 extends T>(fullTypeName: string): EntitySet<T2>; } &
     ISingleEntitySource<T> &
     Actions<T> &
     Functions<T> &
@@ -111,10 +112,13 @@ export type NavigationSetProps<T> = T extends IEntityBase | IApiContextBase ? Ex
 export type NavigationProps<T> = NavigationEntityProps<T> | NavigationSetProps<T>;
 /** List of all entity properties names*/
 export type AllProps<T> = Exclude<keyof T, Markers>;
+/** List of all entity key properties names */
+export type KeyProps<T extends IEntityBase> = T["$$Keys"] & keyof T;
 
-type NavigationSource<T> = { [P in NavigationProps<T>]:
+type Infer<T extends IEntityBase> = T;
+type NavigationSource<T> = { [P in NavigationProps<T>]-?:
     T[P] extends EntityArray<infer E> | undefined ? EntitySet<E> :
-    T[P] extends IEntityBase | undefined ? Singleton<Exclude<T[P], undefined>> :
+    T[P] extends Infer<infer E> | undefined ? Singleton<E> :
     never };
 
 export interface IEntitySetSource<T, R={}> extends IEntitySetFunctionSourceBase<T>, IExecutableWithCount<T, R[]> {
@@ -208,7 +212,7 @@ export type InsertParameter<T> = Pick<{ [P in keyof T]: T[P] extends IComplexBas
         never
     };
 
-export type UpdateParameter<T> = InsertParameter<T>;
+export type UpdateParameter<T> = Pick<{ [P in keyof T]: T[P] extends IComplexBase ? UpdateParameter<T[P]> : T[P] }, PrimitiveProps<T> | ComplexProps<T>>;
 
 export type PatchParameter<T> = {
     [P in PrimitiveProps<T> | ComplexProps<T>]?:

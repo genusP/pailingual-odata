@@ -36,6 +36,8 @@ export interface Context extends IApiContextBase {
 }
 
 export interface Parent extends IEntityBase {
+    $$Keys: "id";
+
     id: number;
     strField: string;
     numberField?: number;
@@ -69,6 +71,8 @@ export interface ParentEx extends Parent {
 }
 
 export interface Child extends IEntityBase {
+    $$Keys: "id";
+
     id: string;
     parentId: number;
     childField: string;
