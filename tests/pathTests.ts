@@ -110,7 +110,7 @@ describe("EntitySet", () => {
     })
 
     it("Cast navigation", () => {
-        return context.Childs.$byKey(1).parent.$cast<ParentEx>("Default.ParentEx").$exec()
+        return context.Childs.$byKey("1").parent.$cast<ParentEx>("Default.ParentEx").$exec()
             .then(() => {
                 assert.equal(requestInfo.url, "/api/Childs('1')/parent/Default.ParentEx");
                 isGetMethod();

@@ -127,13 +127,13 @@ export class CollectionSource extends ExecutableAndCount {
         return new CollectionSource(this.__metadata, this.__apiMetadata, q);
     }
 
-    $insert(obj: any) {
-        const q = this.query.insert(obj);
+    $insert(obj: any, minimal?: boolean) {
+        const q = this.query.insert(obj, minimal);
         return new Executable(q);
     }
 
-    $patch(key: any, obj: any) {
-        return this.$byKey(key).$patch(obj);
+    $patch(key: any, obj: any, representation: boolean) {
+        return this.$byKey(key).$patch(obj, representation);
     }
 
     $top(num: number) {
@@ -160,8 +160,8 @@ export class CollectionSource extends ExecutableAndCount {
         return this.$expand(exp);
     }
 
-    $update(key: any, obj: any) {
-        return this.$byKey(key).$update(obj);
+    $update(key: any, obj: any, representation: boolean) {
+        return this.$byKey(key).$update(obj, representation);
     }
 
     $urlWithCount() {

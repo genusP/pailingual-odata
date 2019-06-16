@@ -6,6 +6,7 @@ import { CollectionSource } from "./collectionSource";
 import { SingleSource } from "./singleSource";
 import { Query } from "./query";
 import * as serialization from "./serialization";
+import { type } from "os";
 
 export { csdl, serialization, Options, ExtendOptions, CollectionSource, SingleSource, Query };
 
@@ -79,17 +80,22 @@ export type ApiContext<T extends IApiContextBase> =
     Actions<T> &
     Functions<T>;
 
+type KeyParameter<T extends IEntityBase> = Pick<Partial<T>, KeyProps<T>> | T[KeyProps<T>]
+
 export type EntitySet<T extends IEntityBase> =
     IEntitySetSource<T> &
     EntitySetActions<T> &
     EntitySetFunctions<T> &
     {
-        $byKey(key: PrimitiveTypes | Pick<Partial<T>, KeyProps<T>>): Singleton<T>;
+        $byKey(key: KeyParameter<T>): Singleton<T>;
         $cast<T2 extends T>(fullTypeName: string): EntitySet<T2>;
+        $insert(insert: InsertParameter<T>, minimal: true): IExecutable<T, Pick<T, KeyProps<T>>>;
         $insert(insert: InsertParameter<T>): IExecutable<T>;
-        $delete(key: PrimitiveTypes | Partial<Pick<T, PrimitiveProps<T>>>): IExecutable<void, void>
-        $update(key: PrimitiveTypes | Partial<Pick<T, PrimitiveProps<T>>>, obj: UpdateParameter<T>): IExecutable<void, void>;
-        $patch(key: PrimitiveTypes | Partial<Pick<T, PrimitiveProps<T>>>, obj: PatchParameter<T>): IExecutable<void, void>;
+        $delete(key: KeyParameter<T>): IExecutable<void, void>
+        $update(key: KeyParameter<T>, obj: UpdateParameter<T>, representation: true): IExecutable<T>;
+        $update(key: KeyParameter<T>, obj: UpdateParameter<T>): IExecutable<void, void>;
+        $patch(key: KeyParameter<T>, obj: PatchParameter<T>, representation: true): IExecutable<T>;
+        $patch(key: KeyParameter<T>, obj: PatchParameter<T>): IExecutable<void, void>;
     };
 
 export type Singleton<T extends IEntityBase> = { $cast<T2 extends T>(fullTypeName: string): EntitySet<T2>; } &
@@ -162,7 +168,9 @@ export interface ISingleEntitySource<T, R={}> extends IExecutable<T, R> {
     $select(): IExecutable<T, Entity<T> & R>;
     $select<F extends PrimitiveProps<T> | ComplexProps<T> | (keyof R & keyof T)>(...props: F[]): IExecutable<T, R & Pick<T, F>>;
     $delete(): IExecutable<void, void>
+    $update(obj: UpdateParameter<T>, representation: true): IExecutable<T>;
     $update(obj: UpdateParameter<T>): IExecutable<void, void>;
+    $patch(obj: PatchParameter<T>, representation: true): IExecutable<T>;
     $patch(obj: PatchParameter<T>): IExecutable<void, void>;
 }
 

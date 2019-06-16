@@ -29,7 +29,6 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
     <Content Include=".gitignore" />
-    <Content Include="tests\metadata.json" />
     <Content Include="package-lock.json" />
     <Content Include="package.json" />
     <Content Include="run_tests.html">
@@ -37,12 +36,14 @@
     </Content>
     <Content Include="tests\extendTests.ts" />
     <Content Include="src\csdl.ts" />
+    <Content Include="tests\headersTest.ts">
+      <TestFramework>Mocha</TestFramework>
+    </Content>
     <Content Include="tsconfig.esm.json">
       <SubType>Code</SubType>
     </Content>
     <Content Include="tsconfig.json" />
     <TypeScriptCompile Include="src\apiContext.ts" />
-    <TypeScriptCompile Include="src\options.ts" />
     <TypeScriptCompile Include="src\polyfills.ts" />
     <TypeScriptCompile Include="src\singleSource.ts" />
     <TypeScriptCompile Include="src\collectionSource.ts" />

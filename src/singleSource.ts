@@ -78,16 +78,16 @@ export class SingleSource extends Executable {
         return new Executable(q);
     }
 
-    $patch(obj: any) {
-        return this.$update(obj, false);
+    $patch(obj: any, representation: boolean) {
+        return this.$update(obj, representation, false);
     }
 
     $unsafeExpand(exp: string) {
         return this.$expand(exp);
     }
 
-    $update(obj: any, put = true) {
-        const q = this.query.update(obj, put);
+    $update(obj: any, representation: boolean, put = true) {
+        const q = this.query.update(obj, put, representation);
         return new Executable(q);
     }
 }

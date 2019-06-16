@@ -166,7 +166,7 @@ describe("Entity", () => {
 
     it("E: Expand str expression", () => {
         const url = context.Childs
-            .$byKey(1)
+            .$byKey("1")
             .$expand("details", e => e.$filter("childId eq 1"))
             .$unsafeExpand("parent($select=id)")
             .$url();

@@ -2,11 +2,13 @@ import { getFormatter, serializeValue } from "./serialization";
 import { Options } from "./options";
 import { expandExpressionBuild, startsWith } from "./utils";
 import * as csdl from "./csdl";
+import { createCipher } from "crypto";
 
 export class Query {
     protected _segments: Segment[] = [];
     protected params: QueryParams = {};
     protected _method: ODataMethods = "get";
+    protected _prefer: string[] = [];
     protected _payload: any;
 
     private constructor(
@@ -36,6 +38,7 @@ export class Query {
 
         res._method = this._method;
         res._payload = this._payload;
+        //res._prefer = [...this._prefer];
         if (beforeFreeze)
             beforeFreeze(res);
         return res._freeze();
@@ -158,10 +161,12 @@ export class Query {
         });
     }
 
-    insert(payload: any) {
+    insert(payload: any, minimal?: boolean) {
         return this._clone(q => {
             q._payload = payload;
             q._method = "post";
+            if (minimal == true)
+                q._prefer.push( "return=minimal");
         });
     }
 
@@ -193,10 +198,12 @@ export class Query {
         return this._clone(q=> q.params.top = num);
     }
 
-    update(payload: string, put: boolean) {
+    update(payload: string, put: boolean, representation: boolean) {
         return this._clone(q => {
             q._payload = payload;
             q._method = put ? "put" : "patch";
+            if (representation)
+                q._prefer.push("return=representation");
         })
     }
 
@@ -254,18 +261,47 @@ export class Query {
         return this._fetchData(url, opt);
     }
 
+    protected getRequestInit(options: Options): RequestInit{
+        const inputFormatter = getFormatter(options.format || "application/json");
+        const body = this._payload ? inputFormatter.serialize(this._payload, this._entityMetadata, options) : null;
+        const requestInit = {
+            method: this._method,
+            body,
+            headers: { "Content-Type": inputFormatter.contentType, "X-Requested-With": "XMLHttpRequest" } as Record<string, string>,
+            credentials: options.credentials
+        }
+        if (this._prefer && this._prefer.length > 0)
+            requestInit.headers["Prefer"] = this._prefer.join(",");
+        return requestInit;
+    }
+
+    protected isHeaders(obj: any): obj is Headers{
+        return obj && obj.has && obj.append && obj.get && obj.set;
+    }
+
+    protected appendHeader(init: HeadersInit, name: string, value: string, merge = true) {
+        if (Array.isArray(init)) {
+            const header = init.find(v => v[0].toLowerCase() == name.toLowerCase()) || init[init.push([name, ""]) - 1]
+            header[1] = merge && header[1]
+                ? header[1] + ";" + value
+                : value;
+        }
+        else if (this.isHeaders(init)) {
+            init.set(name, merge && init.has(name)
+                ? init.get(name) + ";" + value
+                : value);
+        }
+        else {
+            init[name] = merge && init[name]
+                ? init[name] + ";" + value
+                : value;
+                
+        }
+    }
+
     private _fetchData(url: string, options: Options) {
         const fetchApi = (options && options.fetch) || fetch;
-        const inputFormatter = getFormatter(options.format || "application/json");
-        const body = this._payload? inputFormatter.serialize(this._payload, this._entityMetadata, options):null;
-        return fetchApi(
-            url,
-            {
-                method: this._method,
-                body,
-                headers: { "Content-Type": inputFormatter.contentType, "X-Requested-With":"XMLHttpRequest" },
-                credentials: options.credentials
-            })
+        return fetchApi(url, this.getRequestInit(options))
             .then(response => new Promise<{ response: Response, body?: string }>(
                 (resolve, reject) => {
                     if (response.body)
@@ -279,7 +315,7 @@ export class Query {
                 const response = data.response;
                 let contentType = response.headers.get("Content-Type");
                 if (response.ok) {
-                    if (bodyStr && bodyStr.length>0) {
+                    if (bodyStr && bodyStr.length > 0) {
                         if (!contentType) {
                             if (startsWith(bodyStr, "{"))
                                 contentType = "application/json";
@@ -289,8 +325,13 @@ export class Query {
                         const outputFormatter = getFormatter(contentType!);
                         return outputFormatter.deserialize(bodyStr, this._apiMetadata, options);
                     }
-                    else
-                        return null;
+                    else if (response.status == 204) {
+                        const entityId = response.headers.get("OData-EntityId")
+                            || response.headers.get("EntityId");
+                        if (entityId)
+                            return this.deserializeKeyFromEntityId(entityId, options);
+                    }
+                    return null;
                 }
                 else {
                     try {
@@ -301,6 +342,29 @@ export class Query {
                     throw { status: response.status, error };
                 }
             });
+    }
+
+    deserializeKeyFromEntityId(entityId: string, options: Options): any {
+        const re = /(?:((?:\w*\=?\'[^']+\')|[^,\(]+)(?:,|(?:\)$)))/g;
+        entityId = entityId.substr(entityId.lastIndexOf("/"));
+        let keys: string[] = [];
+        let match: RegExpExecArray | null;
+        let index = 0
+        while (match = re.exec(entityId)) {
+            const keyExp = match[1];
+            const pos = keyExp.indexOf("=");
+            if (pos > -1)
+                keys.push(`"${keyExp.substring(0, pos).trim()}":${keyExp.substr(pos)}`);
+            else {
+                const keyItem = this._entityMetadata.$Key![index];
+                const key = typeof keyItem === "string" ? keyItem : Object.getOwnPropertyNames(keyItem)[0];
+                keys.push(`"${key}":${keyExp}`)
+            }
+            index++;
+        }
+        keys.push(`"@odata.context":"#${csdl.getName(this._entityMetadata, "full")}/$entity"`);
+        const formatter = getFormatter("application/json");
+        return formatter.deserialize("{" + keys.join(",") + "}", this._apiMetadata, options);
     }
 }
 
