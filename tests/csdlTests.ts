@@ -1,5 +1,5 @@
 import { describe, it } from "mocha";
-import { metadata } from "./models";
+import { metadata, metadataDoc } from "./models";
 import * as csdl from "../src/csdl";
 import { assert } from "chai";
 
@@ -187,6 +187,13 @@ describe("", () => {
         const expected = "Default.Parent";
         const entityType = parentET;
         const actual = csdl.getName(entityType, "full");
+
+        assert.equal(actual, expected)
+    })
+
+    it("getMetadataDocument", () => {
+        const expected = metadataDoc;
+        const actual = csdl.getMetadataDocument( metadata.Default.Child);
 
         assert.equal(actual, expected)
     })

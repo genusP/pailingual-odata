@@ -308,6 +308,15 @@ export function getItemByName<T>(name: string, context: any): T | undefined {
     }
 }
 
+export function getMetadataDocument(obj: any): MetadataDocument {
+    while (obj && obj.$$parent)
+        obj = obj.$$parent;
+
+    if (isMetadataDocument(obj))
+        return obj;
+    throw new Error("Metadata document not found");
+}
+
 export function getName(obj: object, full?: "full"): string {
     const parent = obj && (obj as any).$$parent;
     if (parent) {
