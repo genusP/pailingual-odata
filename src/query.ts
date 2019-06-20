@@ -2,7 +2,6 @@ import { getFormatter, serializeValue } from "./serialization";
 import { Options } from "./options";
 import { expandExpressionBuild, startsWith } from "./utils";
 import * as csdl from "./csdl";
-import { createCipher } from "crypto";
 
 export class Query {
     protected _segments: Segment[] = [];
@@ -302,59 +301,55 @@ export class Query {
     private _fetchData(url: string, options: Options) {
         const fetchApi = (options && options.fetch) || fetch;
         return fetchApi(url, this.getRequestInit(options))
-            .then(response => new Promise<{ response: Response, body?: string }>(
-                (resolve, reject) => {
-                    if (response.body)
-                        response.text().then(body => resolve({ response, body }), reject);
-                    else
-                        resolve({ response });
-                })
-            )
-            .then(data => {
-                const bodyStr = data.body;
-                const response = data.response;
-                let contentType = response.headers.get("Content-Type");
-                if (response.ok) {
-                    if (bodyStr && bodyStr.length > 0) {
-                        if (!contentType) {
-                            if (startsWith(bodyStr, "{"))
-                                contentType = "application/json";
-                        }
-                        else
-                            contentType = contentType.split(";")[0].trim();
-                        const outputFormatter = getFormatter(contentType!);
-                        return outputFormatter.deserialize(bodyStr, this._apiMetadata, options);
-                    }
-                    else if (response.status == 204) {
-                        const entityId = response.headers.get("OData-EntityId")
-                            || response.headers.get("EntityId");
-                        if (entityId)
-                            return this.deserializeKeyFromEntityId(entityId, options);
-                    }
-                    return null;
+            .then(r => this.proccessResponse(r, options));
+    }
+
+    protected async proccessResponse(response: Response, options: Options) {
+        const bodyStr = response.body
+            ? await response.text()
+            : undefined;
+        let contentType = response.headers.get("Content-Type");
+        if (response.ok) {
+            if (bodyStr && bodyStr.length > 0) {
+                if (!contentType) {
+                    if (startsWith(bodyStr, "{"))
+                        contentType = "application/json";
                 }
-                else {
-                    try {
-                        var odError = bodyStr && JSON.parse(bodyStr);
-                    }
-                    catch  { }
-                    let error = (odError && odError.error) || response.statusText;
-                    throw { status: response.status, error };
-                }
-            });
+                else
+                    contentType = contentType.split(";")[0].trim();
+                const outputFormatter = getFormatter(contentType!);
+                return outputFormatter.deserialize(bodyStr, this._apiMetadata, options);
+            }
+            else if (response.status == 204) {
+                const entityId = response.headers.get("OData-EntityId")
+                    || response.headers.get("EntityId");
+                if (entityId)
+                    return this.deserializeKeyFromEntityId(entityId, options);
+            }
+            return null;
+        }
+        else {
+            try {
+                var odError = bodyStr && JSON.parse(bodyStr);
+            }
+            catch  { }
+            let error = (odError && odError.error) || response.statusText;
+            throw { status: response.status, error };
+        }
     }
 
     deserializeKeyFromEntityId(entityId: string, options: Options): any {
         const re = /(?:((?:\w*\=?\'[^']+\')|[^,\(]+)(?:,|(?:\)$)))/g;
+        const quoteReplaceRE = /'([^']+)'$/
         entityId = entityId.substr(entityId.lastIndexOf("/"));
         let keys: string[] = [];
         let match: RegExpExecArray | null;
         let index = 0
         while (match = re.exec(entityId)) {
-            const keyExp = match[1];
+            const keyExp = match[1].replace(quoteReplaceRE, "\"$1\"");
             const pos = keyExp.indexOf("=");
             if (pos > -1)
-                keys.push(`"${keyExp.substring(0, pos).trim()}":${keyExp.substr(pos)}`);
+                keys.push(`"${keyExp.substring(0, pos).trim()}":${keyExp.substr(pos).replace}`);
             else {
                 const keyItem = this._entityMetadata.$Key![index];
                 const key = typeof keyItem === "string" ? keyItem : Object.getOwnPropertyNames(keyItem)[0];

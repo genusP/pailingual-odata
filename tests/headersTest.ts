@@ -11,15 +11,15 @@ describe("", () => {
         const context = Pailingual.createApiContext<Context>(metadata, {
             fetch: fetchInterceptor(
                 (r, i) => requestInit = i!,
-                new Response(null, { status: 204, headers: { "Prefered-Apply": "return=minimal", "OData-EntityId": "/api/Parents(10)" } }))
+                new Response(null, { status: 204, headers: { "Prefered-Apply": "return=minimal", "OData-EntityId": "/api/Childs('1')" } }))
         });
-        const actual = await context.Parents.$insert({ id: 1, strField: "test" }, true).$exec();
+        const actual = await context.Childs.$insert({ id:"1", parentId: 1, childField: "test" }, true).$exec();
 
         assert.hasAnyKeys(requestInit!.headers, ["Prefer"]);
         const prefer = requestInit!.headers["Prefer"]
         assert.equal(prefer, "return=minimal");
         assert.exists(actual, "MUST return not null")
-        assert.deepEqual(actual, { "id":10});
+        assert.deepEqual(actual, { "id":"1"});
     })
 
     it("update EntitySet, return representation", async () => {
