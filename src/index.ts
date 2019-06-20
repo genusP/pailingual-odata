@@ -6,9 +6,8 @@ import { CollectionSource } from "./collectionSource";
 import { SingleSource } from "./singleSource";
 import { Query } from "./query";
 import * as serialization from "./serialization";
-import { type } from "os";
 
-export { csdl, serialization, Options, ExtendOptions, CollectionSource, SingleSource, Query };
+export { csdl, serialization, Options, ExtendOptions, CollectionSource, SingleSource, Query, ApiContextImpl };
 
 export class Pailingual {
     static use(plugin: { register: () => ExtendOptions | void }) {
@@ -56,17 +55,22 @@ type Unwrap<T> = T extends Array<infer A> ? A : T;
 
 type Markers = keyof IEntityBase | keyof IComplexBase
 
-type Result<T, R={}> =
+export type ExecuteResult<T, R={}> =
+    R extends void ? void :
     R extends Array<infer A> ? {} extends A ? Entity<T>[] : R :
     {} extends R ? Entity<T> & R : R;
 
 export interface IExecutable<T, R={}> {
-    $exec(opt?: Options): Promise<Result<T, R>>;
+    $exec(opt?: Options): Promise<ExecuteResult<T, R>>;
     $url(opt?: Options & { queryParams?: boolean }): string;
 }
 
+export interface IDataModifcationExecutable<T, R={}> extends IExecutable<T, R> {
+    readonly dataModification: true;
+}
+
 export interface IExecutableWithCount<T, R> extends IExecutable<T, R>{
-    $execWithCount(opt?: Options): Promise<{ count: number, value: Result<T, R> }>;
+    $execWithCount(opt?: Options): Promise<{ count: number, value: ExecuteResult<T, R> }>;
     $urlWithCount(opt?: Options): string;
 }
 
@@ -75,7 +79,8 @@ export type Entity<T> = Pick<{ [P in keyof T]: T[P] extends IComplexBase ? Entit
 /*
  *  ApiContext
  */
-export type ApiContext<T extends IApiContextBase> =
+export interface IApiContext<T> { }
+export type ApiContext<T extends IApiContextBase> = IApiContext<T> &
     NavigationSource<T>&
     Actions<T> &
     Functions<T>;
@@ -89,13 +94,13 @@ export type EntitySet<T extends IEntityBase> =
     {
         $byKey(key: KeyParameter<T>): Singleton<T>;
         $cast<T2 extends T>(fullTypeName: string): EntitySet<T2>;
-        $insert(insert: InsertParameter<T>, minimal: true): IExecutable<T, Pick<T, KeyProps<T>>>;
-        $insert(insert: InsertParameter<T>): IExecutable<T>;
-        $delete(key: KeyParameter<T>): IExecutable<void, void>
-        $update(key: KeyParameter<T>, obj: UpdateParameter<T>, representation: true): IExecutable<T>;
-        $update(key: KeyParameter<T>, obj: UpdateParameter<T>): IExecutable<void, void>;
-        $patch(key: KeyParameter<T>, obj: PatchParameter<T>, representation: true): IExecutable<T>;
-        $patch(key: KeyParameter<T>, obj: PatchParameter<T>): IExecutable<void, void>;
+        $insert(insert: InsertParameter<T>, minimal: true): IDataModifcationExecutable<T, Pick<T, KeyProps<T>>>;
+        $insert(insert: InsertParameter<T>): IDataModifcationExecutable<T>;
+        $delete(key: KeyParameter<T>): IDataModifcationExecutable<T, void>
+        $update(key: KeyParameter<T>, obj: UpdateParameter<T>, representation: true): IDataModifcationExecutable<T>;
+        $update(key: KeyParameter<T>, obj: UpdateParameter<T>): IDataModifcationExecutable<T, void>;
+        $patch(key: KeyParameter<T>, obj: PatchParameter<T>, representation: true): IDataModifcationExecutable<T>;
+        $patch(key: KeyParameter<T>, obj: PatchParameter<T>): IDataModifcationExecutable<T, void>;
     };
 
 export type Singleton<T extends IEntityBase> = { $cast<T2 extends T>(fullTypeName: string): EntitySet<T2>; } &
@@ -122,7 +127,7 @@ export type AllProps<T> = Exclude<keyof T, Markers>;
 export type KeyProps<T extends IEntityBase> = T["$$Keys"] & keyof T;
 
 type Infer<T extends IEntityBase> = T;
-type NavigationSource<T> = { [P in NavigationProps<T>]-?:
+export type NavigationSource<T> = { [P in NavigationProps<T>]-?:
     T[P] extends EntityArray<infer E> | undefined ? EntitySet<E> :
     T[P] extends Infer<infer E> | undefined ? Singleton<E> :
     never };
@@ -167,11 +172,11 @@ export interface ISingleEntitySource<T, R={}> extends IExecutable<T, R> {
     $expand<P extends NavigationSetProps<T>, E extends T[P], ER>(navProp: P, exp: ExpandSetExpression<E, ER>): ISingleEntitySource<T, R & ExpandedProperty<T, P, ER[]>>
     $select(): IExecutable<T, Entity<T> & R>;
     $select<F extends PrimitiveProps<T> | ComplexProps<T> | (keyof R & keyof T)>(...props: F[]): IExecutable<T, R & Pick<T, F>>;
-    $delete(): IExecutable<void, void>
-    $update(obj: UpdateParameter<T>, representation: true): IExecutable<T>;
-    $update(obj: UpdateParameter<T>): IExecutable<void, void>;
-    $patch(obj: PatchParameter<T>, representation: true): IExecutable<T>;
-    $patch(obj: PatchParameter<T>): IExecutable<void, void>;
+    $delete(): IDataModifcationExecutable<T, void>
+    $update(obj: UpdateParameter<T>, representation: true): IDataModifcationExecutable<T>;
+    $update(obj: UpdateParameter<T>): IDataModifcationExecutable<T, void>;
+    $patch(obj: PatchParameter<T>, representation: true): IDataModifcationExecutable<T>;
+    $patch(obj: PatchParameter<T>): IDataModifcationExecutable<T, void>;
 }
 
 export interface ISingleEntityFunctionSource<T, R={}> extends IExecutable<T, R> {
@@ -185,7 +190,7 @@ export interface ISingleEntityFunctionSource<T, R={}> extends IExecutable<T, R> 
 
 type ExpandedPropertyResult<T> = T extends Array<infer A> ? Entity<A>[] : Entity<T>
 /** Represent expanded property */
-export type ExpandedProperty<T, P extends NavigationProps<T>, R=ExpandedPropertyResult<Exclude<T[P], undefined>>> = { [K in P]: Result<Unwrap<Exclude<T[P], undefined>>, R> }
+export type ExpandedProperty<T, P extends NavigationProps<T>, R=ExpandedPropertyResult<Exclude<T[P], undefined>>> = { [K in P]: ExecuteResult<Unwrap<Exclude<T[P], undefined>>, R> }
 export type ExpandSingleExpression<T, R> = (e: IExpandebleEntity<Exclude<T, undefined>, {}>) => IExpandSelectResult<R> | IExpandebleEntity<Exclude<T, undefined>, R>;
 export type ExpandSetExpression<T, R> =(e: IExpandebleSet<Unwrap<Exclude<T, undefined>>, {}>) => IExpandSelectResult<R> | IExpandebleSet<Unwrap<Exclude<T, undefined>>,R>;
 
@@ -239,10 +244,10 @@ interface IFunctionsSupport {
     $$Functions: {}
 }
 
-type EntitySetActions<T> = T extends IEntityBase ? { [P in keyof T["$$EntitySetActions"]]: ActionDelegate<T["$$EntitySetActions"][P]> } : {};
-type EntitySetFunctions<T> = T extends IEntityBase ? { [P in keyof T["$$EntitySetFunctions"]]: FuncDelegate<T["$$EntitySetFunctions"][P]> } : {};
-type Actions<T> = T extends IActionsSupport ? { [P in keyof T["$$Actions"]]: ActionDelegate<T["$$Actions"][P]> } : {};
-type Functions<T> = T extends IFunctionsSupport ? { [P in keyof T["$$Functions"]]: FuncDelegate<T["$$Functions"][P]> } : {};
+export type EntitySetActions<T> = T extends IEntityBase ? { [P in keyof T["$$EntitySetActions"]]: ActionDelegate<T["$$EntitySetActions"][P]> } : {};
+export type EntitySetFunctions<T> = T extends IEntityBase ? { [P in keyof T["$$EntitySetFunctions"]]: FuncDelegate<T["$$EntitySetFunctions"][P]> } : {};
+export type Actions<T> = T extends IActionsSupport ? { [P in keyof T["$$Actions"]]: ActionDelegate<T["$$Actions"][P]> } : {};
+export type Functions<T> = T extends IFunctionsSupport ? { [P in keyof T["$$Functions"]]: FuncDelegate<T["$$Functions"][P]> } : {};
 
 export type FuncRetType<T> =
     T extends PrimitiveTypes | PrimitiveTypes[] ? IExecutable<T, T> :
@@ -258,12 +263,12 @@ type FuncDelegate<T> =
     T;
 
 export type ActionRetType<T> =
-    T extends PrimitiveTypes | PrimitiveTypes[] ? IExecutable<T,T> :
-    T extends IComplexBase ? IExecutable<T,T> :
-    T extends ComplexArray<infer U> ? IExecutable<T, U[]> :
-    T extends IEntityBase ? IExecutable<T, T> :
-    T extends EntityArray<infer U> ? IExecutable<T, U[]> :
-    IExecutable<T,void>;
+    T extends PrimitiveTypes | PrimitiveTypes[] ? IDataModifcationExecutable<T,T> :
+    T extends IComplexBase ? IDataModifcationExecutable<T,T> :
+    T extends ComplexArray<infer U> ? IDataModifcationExecutable<T, U[]> :
+    T extends IEntityBase ? IDataModifcationExecutable<T, T> :
+    T extends EntityArray<infer U> ? IDataModifcationExecutable<T, U[]> :
+    IDataModifcationExecutable<T,void>;
 
 type ActionDelegate<T> =
     T extends () => (infer R) ? () => ActionRetType<R> :
