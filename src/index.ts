@@ -85,7 +85,7 @@ export type ApiContext<T extends IApiContextBase> = IApiContext<T> &
     Actions<T> &
     Functions<T>;
 
-type KeyParameter<T extends IEntityBase> = Pick<Partial<T>, KeyProps<T>> | T[KeyProps<T>]
+type KeyParameter<T extends IEntityBase> = KeyProps<T> extends never ? void : Pick<Partial<T>, KeyProps<T>> | T[KeyProps<T>]
 
 export type EntitySet<T extends IEntityBase> =
     IEntitySetSource<T> &
@@ -124,7 +124,7 @@ export type NavigationProps<T> = NavigationEntityProps<T> | NavigationSetProps<T
 /** List of all entity properties names*/
 export type AllProps<T> = Exclude<keyof T, Markers>;
 /** List of all entity key properties names */
-export type KeyProps<T extends IEntityBase> = T["$$Keys"] & keyof T;
+export type KeyProps<T extends IEntityBase> = T["$$Keys"] extends keyof T ? T["$$Keys"] : never;
 
 type Infer<T extends IEntityBase> = T;
 export type NavigationSource<T> = { [P in NavigationProps<T>]-?:
