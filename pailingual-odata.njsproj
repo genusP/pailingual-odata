@@ -60,6 +60,7 @@
     <TypeScriptCompile Include="src\index.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="src\v4_01.ts" />
     <TypeScriptCompile Include="tests\csdlTests.ts">
       <TestFramework>Mocha</TestFramework>
     </TypeScriptCompile>
@@ -80,6 +81,7 @@
       <SubType>Code</SubType>
       <TestFramework>Mocha</TestFramework>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="tests\v4_01Tests.ts" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="dist" />
