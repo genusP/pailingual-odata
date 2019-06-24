@@ -1,13 +1,6 @@
 # Pailingual-OData
 Pailingual OData is the Typescript library offering a simple and type-safe access to your OData v4 services.
 
-For using arrow functions as filter predicate, you need to register [estree](https://github.com/estree/estree) compatible parser (e.g. [acorn](https://github.com/acornjs/acorn))
-```ts
-import { parse } from "acorn";
-import { setParser } from "pailingual-odata";
-setParser(f => parse(f, { locations: true }) as any);
-```
-
 ## Supported OData v4 features
 Resource path:
  - EntitySet
@@ -16,11 +9,12 @@ Resource path:
  - Get entity by key
  - Bounded and unbounded operations
  - $count segment
+ - $batch (use plugin)
  
 Query options for collection:
   - $skip and $top
   - $orderby (also applicable for nested properties in complex type and single-valued navigation property)
-  - $filter (support builtin functions)
+  - $filter (string expression or use pailingual-odata-filter)
   - $search
   - $expand($skip;$top;$orderby;$filter;$search;$expand;$count;$select)
   - $select
@@ -46,6 +40,7 @@ Types
   
 ## Plugins
  [pailingual-odata-filter](https://www.npmjs.com/package/pailingual-odata-filter) - implements support filtering on arrow function based expression.
+ [pailingual-odata-batch](https://www.npmjs.com/package/pailingual-odata-batch) - implements support batch request.
 
 ## How to define a model
 You can use [pailingual-odata-model-generatior](https://www.npmjs.com/package/pailingual-odata-model-generator) for generate model from service metadata.
@@ -54,6 +49,7 @@ You can use [pailingual-odata-model-generatior](https://www.npmjs.com/package/pa
 Define your own interface extending interface IEntityBase
 ```ts
 export interface MyEntity extends IEntityBase {
+  $$Keys:"id";
   id:number;
   field:string;
   nullable?:string;
@@ -76,10 +72,10 @@ export interface MyApiContext extends IApiContextBase {
 
 ### Defining operations
 For defining operations use special properties in your defenition
- * _$$Functions_ - defines unbounded functions in ApiContext or bounded functions in Entity
- * _$$Actions_ - defines unbounded actions in ApiContext or bounded actions in Entity
- * _$$EntitySetFunctions_ - defines collection bounded functions in Entity
- * _$$EntitySetActions_ - defines collection bounded actions in Entity
+ * _$$Functions - defines unbounded functions in ApiContext or bounded functions in Entity
+ * _$$Actions - defines unbounded actions in ApiContext or bounded actions in Entity
+ * _$$EntitySetFunctions - defines collection bounded functions in Entity
+ * _$$EntitySetActions - defines collection bounded actions in Entity
  
  ```ts
 export interface MyApiContext extends IApiContextBase {
@@ -110,26 +106,38 @@ export interface MyEntity extends IEntityBase {
  ```
  
  ## Create ApiContext
+
  Context allows your to make queries to dataservice. For creating context use ApiContextFactory function. This function have few overrides.
  ```ts
- import { ApiContextFactory, loadMetadata } from "pailingual-odata";
+ import { Pailingual, csdl } from "pailingual-odata";
  
- //Create context by url. Metadata will be loaded or get from cache
- ApiContextFactory("/api").then(context=>{/*Your queryes*/}); 
+ var apiRoot = "/api";
+
+ //Load JSON metadata (supported in OData version 4.01)
+ var metadata:csdl.MetadataDocument = await fetch(apiRoot+"/$metadata?format=json").then(r=>r.json());
+
+ //Load XML metadata
+ import {loadFromXml} from "pailingual-odata-csdl-xml";
+ var metadata:csdl.MetadataDocument = await fetch(apiRoot+"/$metadata").then(r=>r.text()).then(x=>loadFromXml(x));
  
+ metadata.$ApiRoot = apiRoot;
+
  //Create context use preloaded metadata
- var context = ApiContextFactory(metadata);
+ var context = Pailingual.createContext<IMyContext>(metadata);
  /*Your queryes*/
  ```
  
  ## Execute query
+
  ```ts
+ import Pailingual from "pailingual-odata";
+
  var maxId=10;
  var result:Entity<MyEntity> 
           & ExpandedProperty<MyEntity, "singleValuedNavigationProperty"> 
           & ExpandedProperty<MyEntity, "collectionValuedNavigationProperty", Pick<MyEntity, "Id">> =null;
 result = await context.EntitySet1
-    .$filter((e, p)=>e.Id < p.maxId, {maxId})
+    .$filter((e, p)=>e.Id < p.maxId, {maxId}) //this function overload added pailingual-odata-filter
     .$expand("singleValuedNavigationProperty")
     .$expand("collectionValuedNavigationProperty", i=>i.$select("Id"))
     .$exec()
