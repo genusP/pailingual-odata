@@ -39,7 +39,9 @@ Types
   - Edm.Decimal
   
 ## Plugins
+
  [pailingual-odata-filter](https://www.npmjs.com/package/pailingual-odata-filter) - implements support filtering on arrow function based expression.
+ 
  [pailingual-odata-batch](https://www.npmjs.com/package/pailingual-odata-batch) - implements support batch request.
 
 ## How to define a model
@@ -72,10 +74,10 @@ export interface MyApiContext extends IApiContextBase {
 
 ### Defining operations
 For defining operations use special properties in your defenition
- * _$$Functions - defines unbounded functions in ApiContext or bounded functions in Entity
- * _$$Actions - defines unbounded actions in ApiContext or bounded actions in Entity
- * _$$EntitySetFunctions - defines collection bounded functions in Entity
- * _$$EntitySetActions - defines collection bounded actions in Entity
+ * _$$Functions_ - defines unbounded functions in ApiContext or bounded functions in Entity
+ * _$$Actions_ - defines unbounded actions in ApiContext or bounded actions in Entity
+ * _$$EntitySetFunctions_ - defines collection bounded functions in Entity
+ * _$$EntitySetActions_ - defines collection bounded actions in Entity
  
  ```ts
 export interface MyApiContext extends IApiContextBase {
