@@ -26,6 +26,8 @@ export enum CsdlKind {
     TypeDefinition = "TypeDefinition"
 }
 
+type AnnotationValue = any;
+
 export interface Reference {
     [uri: string]: ReferenceObject
 }
@@ -38,7 +40,7 @@ export interface ReferenceObject {
 export interface Include {
     $Namespace: string;
     $Alias?: string;
-    [annotation: string]: any;
+    [annotation: string]: AnnotationValue;
 }
 
 export interface IncludeAnnotation {
@@ -50,13 +52,13 @@ export interface IncludeAnnotation {
 export interface Namespace {
     $Alias?: string;
     $Annatations?: any[];
-    [name: string]: Action | ComplexType | EntityContainer | EntityType | EnumType | Function | TypeDefinition | string | undefined;
+    [name: string]: Action | ComplexType | EntityContainer | EntityType | EnumType | Function | TypeDefinition | AnnotationValue| string | undefined;
 }
 
 export interface EntityContainer {
     $Extends?: string;
     $Kind: CsdlKind.EntityContainer;
-    [name: string]: EntitySet | Singleton | ActionImport | FunctionImport | string | undefined;
+    [name: string]: EntitySet | Singleton | ActionImport | FunctionImport | AnnotationValue | string | undefined;
 }
 
 export interface EntitySet {
@@ -64,14 +66,14 @@ export interface EntitySet {
     $Type: string;
     $NavigationPropertyBinding?: Record<string, string>;
     $IncludeInServiceDocument?: boolean;
-    [annotation: string]: any;
+    [annotation: string]: AnnotationValue;
 }
 
 export interface Singleton {
     $Kind: CsdlKind.Singleton;
     $Type: string;
     $NavigationPropertyBinding?: Record<string, string>;
-    [annotation: string]: any;
+    [annotation: string]: AnnotationValue;
 }
 
 export interface EntityType {
@@ -81,7 +83,7 @@ export interface EntityType {
     $Key?: KeyItem[];
     $OpenType?: boolean;
     $HasStream?: boolean;
-    [name: string]: Property | NavigationProperty | KeyItem[] | boolean | string | undefined;
+    [name: string]: Property | NavigationProperty | KeyItem[] | AnnotationValue | boolean | string | undefined;
 }
 
 export interface ComplexType {
@@ -89,7 +91,7 @@ export interface ComplexType {
     $BaseType?: string;
     $Kind: CsdlKind.ComplexType;
     $OpenType?: boolean;
-    [name: string]: Property | NavigationProperty | boolean | string | undefined;
+    [name: string]: Property | NavigationProperty | AnnotationValue | boolean | string | undefined;
 }
 
 export type KeyItem = string | Record<string, string>;
@@ -140,13 +142,13 @@ export interface TypeReference {
     $Type?: PrimitiveType | string;
     $Unicode?: Boolean;
     $SRID?: string;
-    [annotation: string]: any;
+    [annotation: string]: AnnotationValue;
 }
 
 export interface Property extends TypeReference {
     $Kind?: CsdlKind.Property;
     $DefaultValue?: any;
-    [annotation: string]: any;
+    [annotation: string]: AnnotationValue;
 }
 
 export interface NavigationProperty {
@@ -158,18 +160,18 @@ export interface NavigationProperty {
     $Partner?: string;
     $ReferentialConstraint?: ReferentialConstraint;
     $Type: string;
-    [annotation: string]: any;
+    [annotation: string]: AnnotationValue;
 }
 
 export interface ReferentialConstraint {
-    [name: string]: any
+    [annotation: string]: AnnotationValue
 }
 
 export interface EnumType {
     $Kind: CsdlKind.EnumType;
     $UnderlyingType?: PrimitiveType.Byte | PrimitiveType.SByte | PrimitiveType.Int16 | PrimitiveType.Int32 | PrimitiveType.Int64;
     $IsFlags?: boolean,
-    [name: string]: number | string | PrimitiveType.Byte | PrimitiveType.SByte | PrimitiveType.Int16 | PrimitiveType.Int32 | PrimitiveType.Int64 | boolean | undefined
+    [name: string]: number | string | PrimitiveType.Byte | PrimitiveType.SByte | PrimitiveType.Int16 | PrimitiveType.Int32 | PrimitiveType.Int64 | boolean | AnnotationValue | undefined
 }
 
 export interface TypeDefinition {
@@ -180,7 +182,7 @@ export interface TypeDefinition {
     $Precision?: number,
     $Scale?: string,
     $SRID?: string
-    [annotation: string]: any;
+    [annotation: string]: AnnotationValue;
 }
 
 export type Action = ActionOverload[];
@@ -194,7 +196,7 @@ export interface OperationOverload {
 export interface ActionOverload extends OperationOverload {
     $Kind: CsdlKind.Action;
     $ReturnType?: TypeReference;
-    [annotation: string]: any;
+    [annotation: string]: AnnotationValue;
 }
 
 export type Function = FunctionOverload[];
@@ -202,7 +204,7 @@ export type Function = FunctionOverload[];
 export interface FunctionOverload extends OperationOverload {
     $Kind: CsdlKind.Function;
     $ReturnType: TypeReference;
-    [annotation: string]: any;
+    [annotation: string]: AnnotationValue;
 }
 
 export interface Parameter extends TypeReference {
@@ -213,7 +215,7 @@ export interface ActionImport {
     $Kind: CsdlKind.ActionImport;
     $Action: string;
     $EntitySet?: string;
-    [annotation: string]: any;
+    [annotation: string]: AnnotationValue;
 };
 
 export interface FunctionImport {
@@ -221,7 +223,7 @@ export interface FunctionImport {
     $Function: string;
     $EntitySet?: string;
     $IncludeInServiceDocument?: boolean;
-    [annotation: string]: any;
+    [annotation: string]: AnnotationValue;
 }
 
 type Annotable = Include | Namespace | EntityType | Property | NavigationProperty | ReferentialConstraint | ComplexType | EnumType | TypeDefinition
