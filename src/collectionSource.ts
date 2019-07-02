@@ -91,8 +91,15 @@ export class CollectionSource extends ExecutableAndCount {
         return new Executable(query);
     }
 
-    $delete(key: any) {
-        return this.$byKey(key).$delete();
+    $delete(keyOrRef: any) {
+        //if reference
+        if (this.query.lastSegment
+            && this.query.lastSegment.toUrlFragment({}) == "/$ref") {
+            const id = keyOrRef && keyOrRef.toUrl();
+            const q = this.query.delete(id);
+            return new Executable(q);
+        }
+        return this.$byKey(keyOrRef).$delete();
     }
 
     $expand(prop: string, exp?: Function) {
@@ -136,6 +143,11 @@ export class CollectionSource extends ExecutableAndCount {
         return this.$byKey(key).$patch(obj, representation);
     }
 
+    $ref() {
+        const q = this.query.ref();
+        return new CollectionSource(this.__metadata, this.__apiMetadata, q);
+    }
+
     $top(num: number) {
         const q = this.query.top(num);
         return new CollectionSource(this.__metadata, this.__apiMetadata, q);
@@ -160,8 +172,12 @@ export class CollectionSource extends ExecutableAndCount {
         return this.$expand(exp);
     }
 
-    $update(key: any, obj: any, representation: boolean) {
-        return this.$byKey(key).$update(obj, representation);
+    $update(keyOrRefs: any, obj: any, representation: boolean) {
+        if (Array.isArray(keyOrRefs)) { //is refs array
+            const q = this.query.update(keyOrRefs, true, false);
+            return new Executable(q);
+        }
+        return this.$byKey(keyOrRefs).$update(obj, representation);
     }
 
     $urlWithCount() {

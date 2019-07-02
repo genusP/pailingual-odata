@@ -108,7 +108,7 @@ describe("Entity", () => {
             .$filter("filterExpression")
             .$filter("filterExpression2")
             .$url()
-        assert.equal(url, "/api/Parents?$filter=filterExpression and filterExpression2");
+        assert.equal(url, "/api/Parents?$filter=filterExpression AND filterExpression2");
     });
 
     it("Search", () => {
@@ -215,7 +215,7 @@ describe("Entity", () => {
         const q2 = q.$filter("id ne 20");
 
         assert.equal(q.$url(), "/api/Parents?$filter=id eq 1");
-        assert.equal(q2.$url(), "/api/Parents?$filter=id eq 1 and id ne 20");
+        assert.equal(q2.$url(), "/api/Parents?$filter=id eq 1 AND id ne 20");
     });
 
     it("Singleton $select", () => {
@@ -277,3 +277,17 @@ describe("Functions", () => {
         assert.equal(url, "/api/Parents(1)/Default.entityBoundFuncEntityCol()?$select=id");
     })
 });
+
+describe("Reference", () => {
+    it("single-value navigation property", () => {
+        const actual = context.Childs.$byKey("1").parent.$ref().$url();
+
+        assert.equal(actual, "/api/Childs('1')/parent/$ref");
+    })
+
+    it("collection-value navigation property", () => {
+        const actual = context.Parents.$byKey(1).childs.$ref().$url();
+
+        assert.equal(actual, "/api/Parents(1)/childs/$ref");
+    })
+})

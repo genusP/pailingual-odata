@@ -22,6 +22,16 @@ describe('Insert', function () {
             })
     });
 
+    it('entity with ref', function () {
+        const childRef = context.Childs.$byKey("1").$toRef();
+        return context.Parents.$insert({ id: 1, strField: "", childs: [childRef] }).$exec()
+            .then(() => {
+                assert.equal(requestInfo.url, "/api/Parents");
+                assert.equal(requestInfo.method, "post");
+                assert.equal(requestInfo.payload, '{"id":1,"strField":"","childs@odata.bind":["/api/Childs(\'1\')"]}');
+            })
+    });
+
     it('to nav prop', function () {
         return context.Parents.$byKey(1).childs.$insert({ id: "1", childField: "", parentId:1 }).$exec()
             .then(() => {
@@ -30,6 +40,18 @@ describe('Insert', function () {
                 assert.equal(requestInfo.payload, '{"id":"1","childField":"","parentId":1}');
             })
     });
+
+    it('ref to collection-valued nav prop', async () => {
+        await context.Parents.$byKey(1).childs.$ref().$insert(
+            context.Childs.$byKey("1").$toRef()
+        ).$exec();
+
+        assert.equal(requestInfo.url, "/api/Parents(1)/childs/$ref");
+        assert.equal(requestInfo.method, "post");
+        assert.equal(requestInfo.payload, `{"@odata.id":"/api/Childs('1')"}`);
+
+    });
+
 });
 
 describe('Delete', function () {
@@ -68,6 +90,31 @@ describe('Delete', function () {
                 assert.equal(requestInfo.payload, undefined);
             })
     });
+
+    it("all ref from collection-valued nav prop", async () => {
+        await context.Parents.$byKey(1).childs.$ref().$delete().$exec();
+            
+        assert.equal(requestInfo.url, "/api/Parents(1)/childs/$ref");
+        assert.equal(requestInfo.method, "delete");
+        assert.equal(requestInfo.payload, undefined);
+    })
+
+    it("all item ref from collection-valued nav prop", async () => {
+        const itemRef = context.Childs.$byKey("1").$toRef();
+        await context.Parents.$byKey(1).childs.$ref().$delete(itemRef).$exec();
+
+        assert.equal(requestInfo.url, "/api/Parents(1)/childs/$ref?$id=/api/Childs('1')");
+        assert.equal(requestInfo.method, "delete");
+        assert.equal(requestInfo.payload, undefined);
+    })
+
+    it("ref from single-valued nav prop", async () => {
+        await context.Childs.$byKey("1").parent.$ref().$delete().$exec();
+
+        assert.equal(requestInfo.url, "/api/Childs('1')/parent/$ref");
+        assert.equal(requestInfo.method, "delete");
+        assert.equal(requestInfo.payload, undefined);
+    })
 });
 
 describe('Update', function () {
@@ -105,6 +152,27 @@ describe('Update', function () {
                 assert.equal(requestInfo.method, "put");
                 assert.equal(requestInfo.payload, '{"id":1,"strField":"new"}');
             })
+    });
+
+    it('replace all ref in collection-valued  nav prop', async () => {
+
+        await context.Parents.$byKey(1).childs.$ref().$update([
+            context.Childs.$byKey("1").$toRef(),
+            context.Childs.$byKey("2").$toRef()
+        ]).$exec();
+
+        assert.equal(requestInfo.url, "/api/Parents(1)/childs/$ref");
+        assert.equal(requestInfo.method, "put");
+        assert.equal(requestInfo.payload, '{"values":[{"@odata.id":"/api/Childs(\'1\')"},{"@odata.id":"/api/Childs(\'2\')"}]}');
+    });
+
+    it('change ref in single-valued nav prop', async () => {
+
+        await context.Childs.$byKey("1").parent.$ref().$update(context.Parents.$byKey(1).$toRef()).$exec();
+
+        assert.equal(requestInfo.url, "/api/Childs('1')/parent/$ref");
+        assert.equal(requestInfo.method, "put");
+        assert.equal(requestInfo.payload, '{"@odata.id":"/api/Parents(1)"}');
     });
 });
 

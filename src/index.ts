@@ -81,7 +81,10 @@ export type Entity<T> = Pick<{ [P in keyof T]: T[P] extends IComplexBase ? Entit
  */
 export interface IApiContext<T> { }
 export type ApiContext<T extends IApiContextBase> = IApiContext<T> &
-    NavigationSource<T>&
+    { [P in NavigationProps<T>]-?:
+        T[P] extends EntityArray<infer E> | undefined ? EntitySet<E> :
+        T[P] extends Infer<infer E> | undefined ? Singleton<E> :
+        never } &
     Actions<T> &
     Functions<T>;
 
@@ -92,7 +95,7 @@ export type EntitySet<T extends IEntityBase> =
     EntitySetActions<T> &
     EntitySetFunctions<T> &
     {
-        $byKey(key: KeyParameter<T>): Singleton<T>;
+        $byKey(key: KeyParameter<T>): Singleton<T> & { $toRef(): EntityRef<T> };
         $cast<T2 extends T>(fullTypeName: string): EntitySet<T2>;
         $insert(insert: InsertParameter<T>, minimal: true): IDataModifcationExecutable<T, Pick<T, KeyProps<T>>>;
         $insert(insert: InsertParameter<T>): IDataModifcationExecutable<T>;
@@ -108,6 +111,17 @@ export type Singleton<T extends IEntityBase> = { $cast<T2 extends T>(fullTypeNam
     Actions<T> &
     Functions<T> &
     NavigationSource<T>;
+
+export interface RefCollectionSource<T extends IEntityBase> extends IExecutable<T, EntityRef<T>[]> {
+    $delete(id?: EntityRef<T>): IExecutable<T, void>;
+    $insert(id: EntityRef<T>): IExecutable<T, void>;
+    $update(ids: EntityRef<T>[]): IExecutable<T, void>;
+}
+
+export interface RefSingleSource<T extends IEntityBase> extends IExecutable<T, EntityRef<T>> {
+    $delete(): IExecutable<T, void>;
+    $update(id: EntityRef<T>): IExecutable<T, void>;
+}
 
 //Property name selectors
 type ExtractPropertyNames<T, U> = { [P in keyof T]-?: T[P] extends U | undefined ? P extends Markers ? never : P : never }[keyof T];
@@ -128,8 +142,8 @@ export type KeyProps<T extends IEntityBase> = T["$$Keys"] extends keyof T ? T["$
 
 type Infer<T extends IEntityBase> = T;
 export type NavigationSource<T> = { [P in NavigationProps<T>]-?:
-    T[P] extends EntityArray<infer E> | undefined ? EntitySet<E> :
-    T[P] extends Infer<infer E> | undefined ? Singleton<E> :
+    T[P] extends EntityArray<infer E> | undefined ? (EntitySet<E> & { $ref(): RefCollectionSource<E> }) :
+    T[P] extends Infer<infer E> | undefined ? (Singleton<E> & { $ref(): RefSingleSource<E>}) :
     never };
 
 export interface IEntitySetSource<T, R={}> extends IEntitySetFunctionSourceBase<T>, IExecutableWithCount<T, R[]> {
@@ -219,9 +233,10 @@ export type OrderbySource<T> = {
 
 export type InsertParameter<T> = Pick<{ [P in keyof T]: T[P] extends IComplexBase ? InsertParameter<T[P]> : T[P] }, PrimitiveProps<T> | ComplexProps<T>>
     & { //navigation props
-    [P in NavigationProps<T>]?:
-        T[P] extends EntityArray<infer U> | undefined ? Array<InsertParameter<U>> :
-        T[P] extends IEntityBase | IComplexBase | undefined ? InsertParameter<T[P]> :
+        [P in NavigationProps<T>]?:
+        T[P] extends EntityArray<infer U> | undefined ? Array<InsertParameter<U>> | EntityRef<U>[] :
+        T[P] extends IComplexBase | undefined ? InsertParameter<T[P]> :
+        T[P] extends IEntityBase? InsertParameter<T[P]> | EntityRef<T[P]> :
         never
     };
 
@@ -274,3 +289,18 @@ type ActionDelegate<T> =
     T extends () => (infer R) ? () => ActionRetType<R> :
     T extends (...a: infer A) => (infer R) ? (...a: A) => ActionRetType<R> :
     T;
+
+export class EntityRef<T extends IEntityBase>{
+    constructor(
+        private readonly _metadata: csdl.EntityType,
+        private readonly _url: string
+    ) { }
+
+    toUrl() {
+        return this._url;
+    }
+
+    toJSON(){
+        return { "@odata.id": this._url };
+    }
+}

@@ -125,26 +125,28 @@ export class Query {
         return this._clone(
             q => {
                 if (o.inline)
-                    q.params.count = true;
+                    q.params.$count = true;
                 else
                     q._segments.push(new CountSegment());
             }
         );
     }
 
-    delete() {
+    delete(id?: string) {
         return this._clone(
             q => {
                 q._method = "delete";
+                if (q.lastSegment instanceof NavigationPropertyLinkSegment && id)
+                    q.params["$id"] = id;
             }
         );
     }
 
     expand(expand: string, expr?: Function) {
         return this._clone(q => {
-            let expandParam = q.params.expand == null
-                ? q.params.expand = []
-                : q.params.expand;
+            let expandParam = q.params.$expand == null
+                ? q.params.$expand = []
+                : q.params.$expand;
             expandParam.push({ expand, expr });
         });
     }
@@ -152,9 +154,9 @@ export class Query {
     filter(expr: string)
     {
         return this._clone(q => {
-            let filters = (q.params.filter == null)
-                ? q.params.filter = new Array<string>()
-                : q.params.filter;
+            let filters = (q.params.$filter == null)
+                ? q.params.$filter = new Array<string>()
+                : q.params.$filter;
 
             filters.push(expr);
         });
@@ -169,35 +171,46 @@ export class Query {
         });
     }
 
+    get lastSegment() {
+        if (this._segments.length > 0)
+            return this._segments[this._segments.length - 1];
+    }
+
     orderBy(expressions: string[]) {
         return this._clone(q => {
             if (expressions) {
-                if (!q.params.orderBy) q.params.orderBy = [];
-                q.params.orderBy.push(...expressions);
+                if (!q.params.$orderby) q.params.$orderby = [];
+                q.params.$orderby.push(...expressions);
             }
+        });
+    }
+
+    ref() {
+        return this._clone(q => {
+            q._segments.push(new NavigationPropertyLinkSegment());
         });
     }
 
     search(expr: string) {
         return this._clone(q => {
-            if (!q.params.search) q.params.search = [];
-            q.params.search.push(expr);
+            if (!q.params.$search) q.params.$search = [];
+            q.params.$search.push(expr);
         });
     }
 
     select(fields: string[]) {
-        return this._clone(q=> q.params.select = fields);
+        return this._clone(q=> q.params.$select = fields);
     }
 
     skip(num: number) {
-        return this._clone(q=>q.params.skip = num);
+        return this._clone(q=>q.params.$skip = num);
     }
 
     top(num: number) {
-        return this._clone(q=> q.params.top = num);
+        return this._clone(q=> q.params.$top = num);
     }
 
-    update(payload: string, put: boolean, representation: boolean) {
+    update(payload: any, put: boolean, representation: boolean) {
         return this._clone(q => {
             q._payload = payload;
             q._method = put ? "put" : "patch";
@@ -230,23 +243,19 @@ export class Query {
 
     processParameter(name: string, value: any, options: Options): string | undefined {
         switch (name) {
-            case "select":
-                return "$select=" + value.join(",");
-            case "expand":
-                return "$expand=" + value.map((e: ExpandExpr) => this.expandToString(e, options)).join(",");
-            case "filter":
-                return "$filter=" + value.join(" and ");
-            case "orderBy":
-                return "$orderby=" + value.join(",");
-            case "skip":
-                return "$skip=" + value;
-            case "top":
-                return "$top=" + value;
-            case "count":
-                return value === true ? "$count=true" : undefined;
-            case "search":
-                return "$search=" + value.join(" AND ");
+            case "$select": 
+            case "$orderby": value = value.join(",");
+                break;
+            case "$expand": value = value.map((e: ExpandExpr) => this.expandToString(e, options)).join(",");
+                break
+            case "$search":
+            case "$filter": value = value.join(" AND ");
+                break;
+            case "$count": value = value === true ? "true" : undefined;
+                break;
         }
+        if (value !== undefined)
+            return `${name}=${value}`;
     }
 
     private expandToString(e: ExpandExpr, options: Options) {
@@ -364,7 +373,7 @@ export class Query {
 }
 
 type ExpandExpr = { expand: string, expr?: Function }
-type QueryParams = { [x: string]: any; filter?: string[]; top?: number; skip?: number; orderBy?: string[]; expand?: ExpandExpr[]; select?: string[]; count?: boolean; search?: string[] };
+type QueryParams = { [x: string]: any; $filter?: string[]; $top?: number; $skip?: number; $orderby?: string[]; $expand?: ExpandExpr[]; $select?: string[]; $count?: boolean; $search?: string[] };
 type ODataMethods = "get" | "post" | "put" | "patch" | "delete";
 
 abstract class Segment {
@@ -441,4 +450,11 @@ class CastSegment extends Segment {
     toUrlFragment(): string {
         return "/" + this.__fullTypeName;
     }
+}
+
+class NavigationPropertyLinkSegment extends Segment {
+    toUrlFragment(options: Options): string {
+        return "/$ref";
+    }
+
 }

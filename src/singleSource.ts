@@ -1,3 +1,4 @@
+import { EntityRef } from "."
 import { Query } from "./query";
 import { CollectionSource } from "./collectionSource";
 import { Executable } from "./executable";
@@ -80,6 +81,15 @@ export class SingleSource extends Executable {
 
     $patch(obj: any, representation: boolean) {
         return this.$update(obj, representation, false);
+    }
+
+    $ref() {
+        const q = this.query.ref();
+        return new SingleSource(this.__metadata, this.__apiMetadata, q);
+    }
+
+    $toRef() {
+        return new EntityRef<any>(this.__metadata as csdl.EntityType, this.query.url(false));
     }
 
     $unsafeExpand(exp: string) {

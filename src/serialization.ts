@@ -1,6 +1,7 @@
 ﻿import * as csdl from "./csdl";
 import { Options } from "./options";
 import { startsWith, endsWith } from "./utils";
+import { EntityRef } from ".";
 
 const guidRE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -52,40 +53,67 @@ export function getFormatter(contentType: string): Formatter {
 
 addFormatter({ contentType: "application/json", serialize: jsonSerialize, deserialize: jsonDeserialize });
 
-function jsonSerialize(payload: any, metadata: csdl.EntityType, options: Options = {}) {
-    let metadataMap = new MapObjToEntityType();
-    metadataMap.set(payload, metadata);
-    let otMetadata = { $Kind: "EntityType", $OpenType: true } as csdl.EntityType;
-    return JSON.stringify(
-        payload,
-        function (this: typeof payload, k, v) {
-            if (!k || Array.isArray(this))
-                return v;
-            let currentMetadata = metadataMap.get(this);
-            if (currentMetadata != null) {
-                const propMD = csdl.getProperty(k, currentMetadata)
-                const valueType = currentMetadata.$OpenType
-                    ? otMetadata
-                    : propMD && csdl.getType(propMD.$Type, propMD);
+function jsonSerialize(obj: any, metadata: csdl.EntityType | csdl.EntityType, options: Options = {}) {
+    const serialized = jsonSerializeObject(obj, metadata, options);
+    if (Array.isArray(obj))
+        return `{"values":${serialized}}`;
+    return serialized;
+}
 
-                if (!valueType) 
-                    throw new Error(`Property '${k}' not found in metadata`);
-                if (csdl.isEntityType(valueType) || csdl.isComplexType(valueType))
-                {
-                    if ((propMD && propMD.$Collection) || (valueType.$OpenType && Array.isArray(v)))
-                        for (let item of v)
-                            metadataMap.set(item, valueType);
-                    else if (v != null)
-                        metadataMap.set(v, valueType);
-                    return v;
+function jsonSerializeArray(obj: any[], metadata: csdl.ComplexType | csdl.EntityType | undefined, options: Options = {}): string {
+    if (!obj)
+        return "null";
+    const items = obj.map((i: any) => jsonSerializeObject(i, metadata, options));
+    return "[" + items.join(",") + "]";
+}
+
+function jsonSerializeObject(obj: any, metadata: csdl.ComplexType | csdl.EntityType | undefined, options: Options = {}): string {
+    if (metadata == undefined || obj instanceof EntityRef)
+        return JSON.stringify(obj);
+    if (Array.isArray(obj)) 
+        return jsonSerializeArray(obj, metadata);
+
+    let props = Object.getOwnPropertyNames(obj).map(k => {
+        const v = obj[k];
+        const propMD = csdl.getProperty(k, metadata)
+        const valueType = propMD && csdl.getType(propMD.$Type, propMD);
+
+        let serialized = "null";
+        if (metadata.$OpenType && propMD == null)
+            serialized = JSON.stringify(v);
+        else {
+            if (!valueType)
+                throw new Error(`Property '${k}' not found in metadata`);
+            if (csdl.isEntityType(valueType) || csdl.isComplexType(valueType)) {
+                if (isEntityRef(v)) {//Deep insert and update single-valued navigation property. See odata-json-format 8.4
+                    k += "@odata.bind";
+                    serialized = v.toUrl();
                 }
-                else {
-                    return convertToEdmValue(this[k], valueType, false) || v;
+                else if (isEntityRefArray(v)) { //Deep insert and update collection-valued navigation property
+                    k += "@odata.bind";
+                    serialized = JSON.stringify(v.map(er => er.toUrl()));
                 }
+                else if (propMD && propMD.$Collection) {
+                    serialized = jsonSerializeArray(v, valueType, options);
+                }
+                else if (v != null)
+                    serialized = jsonSerializeObject(v, valueType, options);
             }
-            throw new Error("Metadata for object not found");
+            else {
+                serialized = JSON.stringify(convertToEdmValue(v, valueType, false, options) || v);
+            }
         }
-    )
+        return `"${k}":${serialized}`;
+    });
+    return "{" + props.join(",") + "}";
+}
+
+function isEntityRef(obj: any): obj is EntityRef<any> {
+    return obj instanceof EntityRef;
+}
+
+function isEntityRefArray(obj: any): obj is EntityRef<any>[] {
+    return obj && Array.isArray(obj) && isEntityRef(obj[0]);
 }
 
 export function serializeValue(value: any, type: csdl.PrimitiveType | csdl.EnumType, forUri: boolean, opt?: Options): string | null {
