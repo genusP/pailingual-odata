@@ -9,6 +9,10 @@ export interface ComplexType extends IComplexBase{
     field: string
 }
 
+export interface ComplexTypeEx extends ComplexType {
+    dateEx: Date;
+}
+
 export interface Context extends IApiContextBase {
     readonly Parents: Parent[];
     readonly Childs: Child[];
@@ -125,6 +129,11 @@ const metadata = {
         "ComplexType": {
             $Kind: "ComplexType" as csdl.CsdlKind.ComplexType,
             "field": {}
+        },
+        "ComplexTypeEx": {
+            $Kind: "ComplexType" as csdl.CsdlKind.ComplexType,
+            $BaseType: "self.ComplexType",
+            "dateEx": { $Type: "Edm.DateTimeOffset"}
         },
         "Container": {
             $Kind: "EntityContainer" as csdl.CsdlKind.EntityContainer,

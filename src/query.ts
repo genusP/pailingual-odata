@@ -1,6 +1,6 @@
 import { getFormatter, serializeValue } from "./serialization";
 import { Options } from "./options";
-import { expandExpressionBuild, startsWith } from "./utils";
+import { expandExpressionBuild, startsWith, buildPathExpression } from "./utils";
 import * as csdl from "./csdl";
 
 export class Query {
@@ -231,7 +231,7 @@ export class Query {
     processParameter(name: string, value: any, options: Options): string | undefined {
         switch (name) {
             case "select":
-                return "$select=" + value.join(",");
+                return "$select=" + value.map((i:any)=>this.selectToString(i)).join(",");
             case "expand":
                 return "$expand=" + value.map((e: ExpandExpr) => this.expandToString(e, options)).join(",");
             case "filter":
@@ -254,6 +254,15 @@ export class Query {
             return expandExpressionBuild(e.expand, e.expr, this._apiMetadata, this._entityMetadata, options);
         return e.expand;
     }
+
+    private selectToString(expr: any): string {
+        if (typeof expr == "string")
+            return expr;
+        if (typeof expr == "function")
+            return buildPathExpression(expr, this._entityMetadata, this._apiMetadata);
+        throw Error("Unsopperted type select expression");
+    }
+
     exec(options: Options | undefined): Promise<any> {
         var opt = Object.assign({}, this._options, options) as Options;
         var url = this.url(true,opt);

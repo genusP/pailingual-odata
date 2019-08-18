@@ -1,7 +1,9 @@
 ﻿import { assert } from "chai";
 
-import { Pailingual } from "../src/index";
-import { Context, metadata, ParentEx } from "./models";
+import { Pailingual, IExecutableWithCount, Entity, IExecutable } from "../src/index";
+import { Context, metadata, ParentEx, Parent, ComplexTypeEx } from "./models";
+import { url } from "inspector";
+import { it } from "mocha";
 
 const context = Pailingual.createApiContext<Context>(metadata);
 
@@ -44,6 +46,38 @@ describe("Entity", () => {
             .$url();
         assert.equal(url, "/api/Parents?$expand=childs($filter=id eq 1;$select=childField)&$select=childs");
     });
+
+    it("Select property from complex type", () => {
+        const query: IExecutableWithCount<Parent, { field: string }[]> =
+            context.Parents
+                .$select("id", e => e.complexType.field);
+        const url = query.$url();
+        assert.equal(url, "/api/Parents?$select=id,complexType/field");
+    });
+
+    it("Select all fields by star", () => {
+        const query: IExecutableWithCount<Parent, Entity<Parent>[]> =
+            context.Parents.$select("*");
+        const url = query.$url();
+        assert.equal(url, "/api/Parents?$select=*");
+    });
+
+    it("Select field from derived type", () => {
+        const query: IExecutableWithCount<Parent, { exField: string }[]> =
+            context.Parents
+                .$select(e => e.$cast<ParentEx>("Default.ParentEx").exField)
+        const url = query.$url();
+        assert.equal(url, "/api/Parents?$select=Default.ParentEx/exField");
+    })
+
+    it("select field from derived complex type", () => {
+        const query: IExecutable<Parent, { dateEx: Date }> =
+            context.Parents
+                .$byKey(1)
+                .$select(e => e.complexType.$cast<ComplexTypeEx>("Default.ComplexTypeEx").dateEx);
+        const url = query.$url();
+        assert.equal(url, "/api/Parents(1)?$select=complexType/Default.ComplexTypeEx/dateEx");
+    })
 
     it("Order by 1", () => {
         const url = context.Parents

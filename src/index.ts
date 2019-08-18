@@ -138,8 +138,7 @@ export interface IEntitySetSource<T, R={}> extends IEntitySetFunctionSourceBase<
     $expand<P extends NavigationProps<T>>(navProp: P): IEntitySetSource<T, R & ExpandedProperty<T, P>>
     $expand<P extends NavigationEntityProps<T>, E extends T[P], ER>(navProp: P, exp?: ExpandSingleExpression<E, ER>): IEntitySetSource<T, R & ExpandedProperty<T, P, ER>>
     $expand<P extends NavigationSetProps<T>, E extends T[P], ER>(navProp: P, exp: ExpandSetExpression<E, ER>): IEntitySetSource<T, R & ExpandedProperty<T, P, ER[]>>
-    $select(): IExecutableWithCount<T, (Entity<T> & R)[]>;
-    $select<F extends PrimitiveProps<T> | ComplexProps<T> | (keyof R & keyof T)>(...props: F[]): IExecutableWithCount<T, (R & Pick<T, F>)[]>;
+    $select<SR extends SelectFieldExpr<T,R>[]>(...items: SR): IExecutableWithCount<T, SelectReturnType<T, R, SR>[]>;
 }
 
 export interface ICastableEntitySetFunctionSource<T, R={}> extends IEntitySetFunctionSource<T, R> {
@@ -149,8 +148,7 @@ export interface IEntitySetFunctionSource<T, R={}> extends IEntitySetFunctionSou
     $expand<P extends NavigationProps<T>>(navProp: P): IEntitySetFunctionSource<T, R & ExpandedProperty<T, P>>
     $expand<P extends NavigationEntityProps<T>, E extends T[P], ER>(navProp: P, exp?: ExpandSingleExpression<E, ER>): IEntitySetFunctionSource<T, R & ExpandedProperty<T, P, ER>>
     $expand<P extends NavigationSetProps<T>, E extends T[P], ER>(navProp: P, exp: ExpandSetExpression<E, ER>): IEntitySetFunctionSource<T, R & ExpandedProperty<T, P, ER[]>>
-    $select(): IExecutableWithCount<T, Entity<T> & R>;
-    $select<F extends PrimitiveProps<T> | ComplexProps<T> | (keyof R & keyof T)>(...props: F[]): IExecutableWithCount<T, R & Pick<T, F>>;
+    $select<SR extends SelectFieldExpr<T, R>[]>(...items: SR): IExecutableWithCount<T, SelectReturnType<T, R, SR>[]>;
 }
 
 export interface IEntitySetFunctionSourceBase<T> {
@@ -164,14 +162,62 @@ export interface IEntitySetFunctionSourceBase<T> {
 
 export interface IComplexSetFunctionSource<T, R={}> extends IEntitySetFunctionSourceBase<T>, IExecutableWithCount<T, R[]> { }
 
+export interface ISingleEntitySourceSelect<T, R> {
+    $select<SR extends SelectFieldExpr<T, R>[]>(...items: SR): IExecutable<T, SelectReturnType<T, R, SR>>;
+}
+
+export interface ICollectionEntitySourceSelect<T, R> {
+    $select<SR extends SelectFieldExpr<T, R>[]>(...items: SR): IExecutableWithCount<T, SelectReturnType<T, R, SR>[]>;
+}
+
+
+type SelectFieldExpr<T,R> = ((b: SelectExpressionBuilder<T,R>) => PropertyInfo<any, any>)
+    | "*"
+    | PrimitiveProps<T> | ComplexProps<T> | (keyof R & keyof T);
+
+//object represents list of properties avalible in select expressions
+type SelectExpressionBuilderTypeProperties<T, R> = {
+    [P in PrimitiveProps<T> | ComplexProps<T>]: T[P] extends IComplexBase | IEntityBase | undefined
+        ? PropertyInfo<P, T[P]> & SelectExpressionBuilder<Exclude<T[P],undefined>,R> //nested proerty for complex type
+        : PropertyInfo<P, T[P]>;
+};
+
+//Covert 'a|b' to 'a&b'
+type UnionToIntersection<U> =
+    (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
+
+type PropertyInfo<P extends string | number | symbol, R> = {  };
+type SelectExpressionBuilder<T,R> = SelectExpressionBuilderTypeProperties<T,R> & ISelectExpressionBuilder<T,R>;
+//Represent result object for select expression
+type Select_BuldProperty<T, R, P> =
+    P extends "*" ? Entity<T> : 
+    P extends string ? keyof R extends P ? {[P2 in keyof(R)&P]:R[P2]} : {[P2 in keyof(T)&P]:T[P2]}:
+    P extends (b:SelectExpressionBuilder<T,R>)=>PropertyInfo<infer P2, infer R2>? {[K in P2]:R2}:
+    never;
+
+type StripTuple<T extends ArrayLike<T>> =
+    Pick<T, Exclude<keyof T, keyof Array<any>>>
+
+//Build result object from list iof expressions T2
+type Select_BuildResult<T, R, T2 extends ArrayLike<T2>> =
+    Array<keyof StripTuple<T2> extends infer K ? K extends any ? Select_BuldProperty<T, R, T2[K]> : never : never>; 
+
+//T2 - contains tuple represents types all field expressions
+//T2 with using Select_BuildProperty converts to tuple types with selected property
+//Tuple converts to Intersection
+type SelectReturnType<T, R, T2 extends any[]> = UnionToIntersection<Select_BuildResult<T, R, T2>[number]>;
+
+export interface ISelectExpressionBuilder<T,R>{
+    $cast<N>(fullQualifiedTypeName: string): SelectExpressionBuilder<N,R>
+}
+
 export interface ISingleEntitySource<T, R={}> extends IExecutable<T, R> {
     $unsafeExpand(exp: string): this;
     $expand<P extends NavigationProps<T>>(navProp: P): ISingleEntitySource<T, R & ExpandedProperty<T, P>>
     //Expand entity navigation property with query options
     $expand<P extends NavigationEntityProps<T>, E extends T[P], ER>(navProp: P, exp?: ExpandSingleExpression<E, ER>): ISingleEntitySource<T, R & ExpandedProperty<T, P, ER>>
     $expand<P extends NavigationSetProps<T>, E extends T[P], ER>(navProp: P, exp: ExpandSetExpression<E, ER>): ISingleEntitySource<T, R & ExpandedProperty<T, P, ER[]>>
-    $select(): IExecutable<T, Entity<T> & R>;
-    $select<F extends PrimitiveProps<T> | ComplexProps<T> | (keyof R & keyof T)>(...props: F[]): IExecutable<T, R & Pick<T, F>>;
+    $select<SR extends SelectFieldExpr<T, R>[]>(...items: SR): IExecutable<T, SelectReturnType<T, R, SR>>;
     $delete(): IDataModifcationExecutable<T, void>
     $update(obj: UpdateParameter<T>, representation: true): IDataModifcationExecutable<T>;
     $update(obj: UpdateParameter<T>): IDataModifcationExecutable<T, void>;
@@ -199,7 +245,7 @@ export interface IExpandebleEntity<T,R> {
     $expand<P extends NavigationProps<T>>(navProp: P): IExpandebleEntity<T, R & ExpandedProperty<T, P>>
     $expand<P extends NavigationSetProps<T>, E extends T[P], ER>(navProp: P, exp: ExpandSingleExpression<E, ER>): IExpandebleEntity<T, R & ExpandedProperty<T, P, ER[]>>
     $expand<P extends NavigationEntityProps<T>, E extends T[P], ER>(navProp: P, exp?: ExpandSetExpression<E, ER>): IExpandebleEntity<T, R & ExpandedProperty<T, P, ER>>
-    $select<F extends PrimitiveProps<T> | ComplexProps<T> | (keyof R & keyof T)>(...props: F[]): IExpandSelectResult<R & Pick<T, F>>;
+    $select<SR extends SelectFieldExpr<T, R>[]>(...items: SR): IExpandSelectResult<SelectReturnType<T, R, SR>>;
 }
 
 /** Functions for expand expressions of navigation property return entity set*/
@@ -207,7 +253,7 @@ export interface IExpandebleSet<T, R> extends IEntitySetFunctionSourceBase<T>{
     $expand<P extends NavigationProps<T>>(navProp: P): IExpandebleSet<T, R & ExpandedProperty<T, P>>
     $expand<P extends NavigationSetProps<T>, E extends T[P], ER>(navProp: P, exp: ExpandSingleExpression<E, ER>): IExpandebleSet<T, R & ExpandedProperty<T, P, ER[]>>
     $expand<P extends NavigationEntityProps<T>, E extends T[P], ER>(navProp: P, exp?: ExpandSetExpression<E, ER>): IExpandebleSet<T, R & ExpandedProperty<T, P, ER>>
-    $select<F extends PrimitiveProps<T> | ComplexProps<T> | (keyof R & keyof T)>(...props: F[]): IExpandSelectResult< R & Pick<T, F>>;
+    $select<SR extends SelectFieldExpr<T, R>[]>(...items: SR): IExpandSelectResult<SelectReturnType<T, R, SR>>;
 }
 
 interface IExpandSelectResult<R> {interfaceMarker:never }
