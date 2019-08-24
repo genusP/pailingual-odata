@@ -128,7 +128,7 @@ type ExtractPropertyNames<T, U> = { [P in keyof T]-?: T[P] extends U | undefined
 /** List of primitive properties names*/
 export type PrimitiveProps<T> = ExtractPropertyNames<T, PrimitiveTypes>;
 /** List of complex properties names*/
-export type ComplexProps<T> = ExtractPropertyNames<T, IComplexBase>
+export type ComplexProps<T> = ExtractPropertyNames<T, IComplexBase> | ExtractPropertyNames<T, IComplexBase[]>
 /** List of navigation single-value properties names*/
 export type NavigationEntityProps<T> = T extends IEntityBase | IApiContextBase ? ExtractPropertyNames<T, IEntityBase> : never;
 /** List of navigation multiple-value properties names*/
@@ -185,14 +185,14 @@ export interface ICollectionEntitySourceSelect<T, R> {
 }
 
 
-type SelectFieldExpr<T,R> = ((b: SelectExpressionBuilder<T,R>) => PropertyInfo<any, any>)
+export type SelectFieldExpr<T, R> = ((b: SelectExpressionBuilder<T, R>) => PropertyInfo<any, any>)
     | "*"
     | PrimitiveProps<T> | ComplexProps<T> | (keyof R & keyof T);
 
 //object represents list of properties avalible in select expressions
 type SelectExpressionBuilderTypeProperties<T, R> = {
-    [P in PrimitiveProps<T> | ComplexProps<T>]: T[P] extends IComplexBase | IEntityBase | undefined
-        ? PropertyInfo<P, T[P]> & SelectExpressionBuilder<Exclude<T[P],undefined>,R> //nested proerty for complex type
+    [P in PrimitiveProps<T> | ComplexProps<T>]: T[P] extends IComplexBase | IEntityBase | IComplexBase[] | undefined
+        ? PropertyInfo<P, T[P]> & SelectExpressionBuilder<Exclude<T[P],undefined>,R, P> //nested proerty for complex type
         : PropertyInfo<P, T[P]>;
 };
 
@@ -200,14 +200,17 @@ type SelectExpressionBuilderTypeProperties<T, R> = {
 type UnionToIntersection<U> =
     (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
 
-type PropertyInfo<P extends string | number | symbol, R> = {  };
-type SelectExpressionBuilder<T,R> = SelectExpressionBuilderTypeProperties<T,R> & ISelectExpressionBuilder<T,R>;
+export type PropertyInfo<P extends string | number | symbol, R> = {  };
+type SelectExpressionBuilder<T, R, P=never> = SelectExpressionBuilderTypeProperties<T, R>
+    & (T extends Array<infer E> | undefined ? ISelectColExpressionBuilder<E, R, P> : ISelectExpressionBuilder<T, R, P>);
 //Represent result object for select expression
 type Select_BuldProperty<T, R, P> =
     P extends "*" ? Entity<T> : 
-    P extends string ? keyof R extends P ? {[P2 in keyof(R)&P]:R[P2]} : {[P2 in keyof(T)&P]:T[P2]}:
+    P extends string ? Select_FieldByName<T,R,P>:
     P extends (b:SelectExpressionBuilder<T,R>)=>PropertyInfo<infer P2, infer R2>? {[K in P2]:R2}:
     never;
+type Select_FieldByName<T, R, P> =
+     { [P2 in keyof (T) & P]: T[P2] };
 
 type StripTuple<T extends ArrayLike<T>> =
     Pick<T, Exclude<keyof T, keyof Array<any>>>
@@ -221,8 +224,13 @@ type Select_BuildResult<T, R, T2 extends ArrayLike<T2>> =
 //Tuple converts to Intersection
 type SelectReturnType<T, R, T2 extends any[]> = UnionToIntersection<Select_BuildResult<T, R, T2>[number]>;
 
-export interface ISelectExpressionBuilder<T,R>{
-    $cast<N>(fullQualifiedTypeName: string): SelectExpressionBuilder<N,R>
+export interface ISelectExpressionBuilder<T, R, P> {
+    $cast<N>(fullQualifiedTypeName: string): SelectExpressionBuilder<N, R, P>
+}
+
+export interface ISelectColExpressionBuilder<T, R, P>
+{
+    $cast<N>(fullQualifiedTypeName: string): SelectExpressionBuilder<N, R, P>
 }
 
 export interface ISingleEntitySource<T, R={}> extends IExecutable<T, R> {

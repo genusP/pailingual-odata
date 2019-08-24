@@ -6,7 +6,8 @@ export enum TestEnum {
 }
 
 export interface ComplexType extends IComplexBase{
-    field: string
+    field: string;
+    field2: number;
 }
 
 export interface ComplexTypeEx extends ComplexType {
@@ -49,6 +50,7 @@ export interface Parent extends IEntityBase {
     dateField?: Date;
     guid?: string;
     complexType?: ComplexType;
+    complexTypeCol?: ComplexType[];
     enumField?: TestEnum;
 
     childs?: Child[];
@@ -128,7 +130,8 @@ const metadata = {
         },
         "ComplexType": {
             $Kind: "ComplexType" as csdl.CsdlKind.ComplexType,
-            "field": {}
+            "field": {},
+            "field2": {$Type:"Edm.Int32"}
         },
         "ComplexTypeEx": {
             $Kind: "ComplexType" as csdl.CsdlKind.ComplexType,
@@ -220,6 +223,7 @@ const metadata = {
             "dateField": { $Type: "Edm.DateTimeOffset", $Nullable: true },
             "guid": { $Type: "Edm.Guid", $Nullable: true },
             "complexType": { $Type: "self.ComplexType", $Nullable: true },
+            "complexTypeCol": { $Type: "self.ComplexType", $Nullable: true, $Collection:true },
             "enumField": { $Type: "self.TestEnum", $Nullable: true },
             "childs": { $Kind: "NavigationProperty" as csdl.CsdlKind.NavigationProperty, $Type: "self.Child", $Collection: true },
             "entityes": { $Kind: "NavigationProperty" as csdl.CsdlKind.NavigationProperty, $Type: "self.TestEntity", $Collection: true }

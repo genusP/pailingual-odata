@@ -244,7 +244,7 @@ export class Query {
     processParameter(name: string, value: any, options: Options): string | undefined {
         switch (name) {
             case "$select":
-                value.map((i: any) => this.selectToString(i)).join(",");
+                value = value.map((i: any) => this.selectToString(i)).join(",");
                 break;
             case "$orderby": value = value.join(",");
                 break;

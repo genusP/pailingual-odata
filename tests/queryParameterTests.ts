@@ -48,7 +48,7 @@ describe("Entity", () => {
     });
 
     it("Select property from complex type", () => {
-        const query: IExecutableWithCount<Parent, { field: string }[]> =
+        const query: IExecutableWithCount<Parent, {id:number, field: string }[]> =
             context.Parents
                 .$select("id", e => e.complexType.field);
         const url = query.$url();

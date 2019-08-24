@@ -25,7 +25,7 @@ export class SingleSource extends Executable {
                 if (csdl.isEntityType(propertyType) || csdl.isComplexType(propertyType) || csdl.isPrimitiveType(propertyType))
                     Object.defineProperty(this, p, {
                         get() {
-                            let query = this.query.navigate(p)
+                            let query = this.query.navigate(p, propertyType);
                             return new SingleSource(propertyType, this.__apiMetadata, query);
                         }
                     });
