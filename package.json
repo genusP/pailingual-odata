@@ -41,7 +41,7 @@
     "chai": "^4.2.0",
     "es6-object-assign": "^1.1.0",
     "es6-promise": "^4.2.6",
-    "jsdom": "^13.2.0",
+    "jsdom": "^16.5.0",
     "jsdom-global": "^3.0.2",
     "mocha": "^5.2.0",
     "node-fetch": "^2.3.0",
